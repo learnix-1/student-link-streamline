@@ -9,7 +9,250 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      companies: {
+        Row: {
+          collaboration_status: string
+          contact_email: string | null
+          contact_person: string | null
+          contact_phone: string | null
+          created_at: string
+          id: string
+          job_roles_offered: string[] | null
+          name: string
+        }
+        Insert: {
+          collaboration_status?: string
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          job_roles_offered?: string[] | null
+          name: string
+        }
+        Update: {
+          collaboration_status?: string
+          contact_email?: string | null
+          contact_person?: string | null
+          contact_phone?: string | null
+          created_at?: string
+          id?: string
+          job_roles_offered?: string[] | null
+          name?: string
+        }
+        Relationships: []
+      }
+      company_interactions: {
+        Row: {
+          company_id: string
+          created_at: string
+          description: string
+          id: string
+          interaction_date: string
+          interaction_type: string
+          placement_officer_id: string
+        }
+        Insert: {
+          company_id: string
+          created_at?: string
+          description: string
+          id?: string
+          interaction_date?: string
+          interaction_type: string
+          placement_officer_id: string
+        }
+        Update: {
+          company_id?: string
+          created_at?: string
+          description?: string
+          id?: string
+          interaction_date?: string
+          interaction_type?: string
+          placement_officer_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_interactions_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "company_interactions_placement_officer_id_fkey"
+            columns: ["placement_officer_id"]
+            isOneToOne: false
+            referencedRelation: "placement_officers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      placement_officers: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          name: string
+          phone: string | null
+          school_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          name: string
+          phone?: string | null
+          school_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          name?: string
+          phone?: string | null
+          school_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placement_officers_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      placements: {
+        Row: {
+          company_id: string | null
+          created_at: string
+          id: string
+          placement_date: string
+          placement_officer_id: string | null
+          status: string
+          student_id: string | null
+        }
+        Insert: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          placement_date?: string
+          placement_officer_id?: string | null
+          status?: string
+          student_id?: string | null
+        }
+        Update: {
+          company_id?: string | null
+          created_at?: string
+          id?: string
+          placement_date?: string
+          placement_officer_id?: string | null
+          status?: string
+          student_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "placements_company_id_fkey"
+            columns: ["company_id"]
+            isOneToOne: false
+            referencedRelation: "companies"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_placement_officer_id_fkey"
+            columns: ["placement_officer_id"]
+            isOneToOne: false
+            referencedRelation: "placement_officers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "placements_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "students"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          created_at: string
+          id: string
+          location: string | null
+          name: string
+          project_lead_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          name: string
+          project_lead_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          location?: string | null
+          name?: string
+          project_lead_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_project_lead"
+            columns: ["project_lead_id"]
+            isOneToOne: false
+            referencedRelation: "placement_officers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          course: string | null
+          created_at: string
+          email: string
+          id: string
+          interview_results: string | null
+          interviews_attended: number | null
+          name: string
+          phone: string | null
+          placement_status: string
+          school_id: string | null
+        }
+        Insert: {
+          course?: string | null
+          created_at?: string
+          email: string
+          id?: string
+          interview_results?: string | null
+          interviews_attended?: number | null
+          name: string
+          phone?: string | null
+          placement_status?: string
+          school_id?: string | null
+        }
+        Update: {
+          course?: string | null
+          created_at?: string
+          email?: string
+          id?: string
+          interview_results?: string | null
+          interviews_attended?: number | null
+          name?: string
+          phone?: string | null
+          placement_status?: string
+          school_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
