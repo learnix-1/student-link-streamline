@@ -7,7 +7,7 @@ import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
 export interface Column<T> {
   header: string;
-  accessor: keyof T | ((row: T) => React.ReactNode);
+  accessor: keyof T | string | ((row: T) => React.ReactNode);
   cell?: (row: T) => React.ReactNode;
 }
 
@@ -58,6 +58,16 @@ export function DataTable<T>({
     setCurrentPage((prev) => Math.min(prev + 1, totalPages));
   };
 
+  // Helper function to safely get value from accessor
+  const getCellValue = (row: T, accessor: keyof T | string | ((row: T) => React.ReactNode)) => {
+    if (typeof accessor === 'function') {
+      return accessor(row);
+    }
+    
+    // Handle both keyof T and string types for accessor
+    return String(row[accessor as keyof T] || '');
+  };
+
   return (
     <div className={className}>
       {searchField && (
@@ -100,9 +110,7 @@ export function DataTable<T>({
                     <TableCell key={colIndex}>
                       {column.cell
                         ? column.cell(row)
-                        : typeof column.accessor === 'function'
-                        ? column.accessor(row)
-                        : String(row[column.accessor] || '')}
+                        : getCellValue(row, column.accessor)}
                     </TableCell>
                   ))}
                 </TableRow>

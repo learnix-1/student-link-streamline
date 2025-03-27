@@ -22,15 +22,15 @@ const Placements = () => {
   const { placements, students, companies, placementOfficers } = userData;
 
   const placementColumns = [
-    { header: 'Student', accessor: 'student_name' },
-    { header: 'Company', accessor: 'company_name' },
+    { header: 'Student', accessor: 'student_name' as keyof Placement },
+    { header: 'Company', accessor: 'company_name' as keyof Placement },
     { 
       header: 'Placement Date', 
       accessor: (row: Placement) => new Date(row.placement_date).toLocaleDateString() 
     },
     { 
       header: 'Status', 
-      accessor: 'status',
+      accessor: 'status' as keyof Placement,
       cell: (row: Placement) => (
         <div className="flex items-center">
           <span 
@@ -42,7 +42,7 @@ const Placements = () => {
         </div>
       )
     },
-    { header: 'Placement Officer', accessor: 'placement_officer_name' },
+    { header: 'Placement Officer', accessor: 'placement_officer_name' as keyof Placement },
     { 
       header: 'Actions', 
       accessor: (row: Placement) => (

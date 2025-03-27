@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
@@ -16,12 +15,12 @@ const Dashboard = () => {
   const { stats, placements } = userData;
 
   const placementColumns = [
-    { header: 'Student', accessor: 'student_name' },
-    { header: 'Company', accessor: 'company_name' },
+    { header: 'Student', accessor: 'student_name' as keyof Placement },
+    { header: 'Company', accessor: 'company_name' as keyof Placement },
     { header: 'Date', accessor: (row: Placement) => new Date(row.placement_date).toLocaleDateString() },
     { 
       header: 'Status', 
-      accessor: 'status',
+      accessor: 'status' as keyof Placement,
       cell: (row: Placement) => (
         <div className="flex items-center">
           <span 
@@ -33,7 +32,7 @@ const Dashboard = () => {
         </div>
       )
     },
-    { header: 'Placement Officer', accessor: 'placement_officer_name' },
+    { header: 'Placement Officer', accessor: 'placement_officer_name' as keyof Placement },
   ];
 
   return (

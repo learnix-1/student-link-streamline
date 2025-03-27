@@ -37,7 +37,8 @@ const Companies = () => {
       
       if (error) throw error;
       
-      setCompanies(data || []);
+      // Type assertion to match our Company type
+      setCompanies(data as Company[] || []);
     } catch (error) {
       console.error('Error fetching companies:', error);
       toast.error('Failed to load companies');
@@ -47,12 +48,12 @@ const Companies = () => {
   };
   
   const companyColumns = [
-    { header: 'Name', accessor: 'name' },
-    { header: 'Contact Person', accessor: 'contact_person' },
-    { header: 'Contact Email', accessor: 'contact_email' },
+    { header: 'Name', accessor: 'name' as keyof Company },
+    { header: 'Contact Person', accessor: 'contact_person' as keyof Company },
+    { header: 'Contact Email', accessor: 'contact_email' as keyof Company },
     { 
       header: 'Status', 
-      accessor: 'collaboration_status',
+      accessor: 'collaboration_status' as keyof Company,
       cell: (row: Company) => (
         <div className="flex items-center">
           <span 
@@ -161,7 +162,7 @@ const Companies = () => {
                   <DataTable 
                     data={companies} 
                     columns={companyColumns} 
-                    searchField="name"
+                    searchField="name" as keyof Company
                     onRowClick={viewCompanyDetails}
                   />
                 )}

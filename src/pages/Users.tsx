@@ -22,12 +22,12 @@ const Users = () => {
   const { users, schools } = userData;
 
   const userColumns = [
-    { header: 'Name', accessor: 'name' },
-    { header: 'Email', accessor: 'email' },
-    { header: 'Phone', accessor: 'phone' },
+    { header: 'Name', accessor: 'name' as keyof User },
+    { header: 'Email', accessor: 'email' as keyof User },
+    { header: 'Phone', accessor: 'phone' as keyof User },
     { 
       header: 'Role', 
-      accessor: 'role',
+      accessor: 'role' as keyof User,
       cell: (row: User) => (
         <div className="flex items-center">
           <span 

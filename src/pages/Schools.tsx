@@ -23,8 +23,8 @@ const Schools = () => {
   const projectLeads = users.filter((user: User) => user.role === 'project_lead');
 
   const schoolColumns = [
-    { header: 'Name', accessor: 'name' },
-    { header: 'Location', accessor: 'location' },
+    { header: 'Name', accessor: 'name' as keyof School },
+    { header: 'Location', accessor: 'location' as keyof School },
     { 
       header: 'Project Lead', 
       accessor: (row: School) => {

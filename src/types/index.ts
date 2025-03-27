@@ -1,9 +1,9 @@
 
-export type UserRole = 'master_admin' | 'project_lead' | 'placement_officer';
+export type UserRole = 'master_admin' | 'project_lead' | 'placement_officer' | string;
 
-export type PlacementStatus = 'not_placed' | 'placed';
-export type CollaborationStatus = 'active' | 'inactive';
-export type PlacementProgressStatus = 'in_progress' | 'completed';
+export type PlacementStatus = 'not_placed' | 'placed' | string;
+export type CollaborationStatus = 'active' | 'inactive' | string;
+export type PlacementProgressStatus = 'in_progress' | 'completed' | string;
 
 export interface User {
   id: string;

@@ -22,9 +22,9 @@ const Students = () => {
   const { students, schools } = userData;
 
   const studentColumns = [
-    { header: 'Name', accessor: 'name' },
-    { header: 'Email', accessor: 'email' },
-    { header: 'Course', accessor: 'course' },
+    { header: 'Name', accessor: 'name' as keyof Student },
+    { header: 'Email', accessor: 'email' as keyof Student },
+    { header: 'Course', accessor: 'course' as keyof Student },
     { 
       header: 'School', 
       accessor: (row: Student) => {
@@ -34,7 +34,7 @@ const Students = () => {
     },
     { 
       header: 'Status', 
-      accessor: 'placement_status',
+      accessor: 'placement_status' as keyof Student,
       cell: (row: Student) => (
         <div className="flex items-center">
           <span 
@@ -46,7 +46,7 @@ const Students = () => {
         </div>
       )
     },
-    { header: 'Interviews', accessor: 'interviews_attended' },
+    { header: 'Interviews', accessor: 'interviews_attended' as keyof Student },
     { 
       header: 'Actions', 
       accessor: (row: Student) => (
