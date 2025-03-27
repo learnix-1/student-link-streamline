@@ -1,4 +1,3 @@
-
 export type UserRole = 'master_admin' | 'project_lead' | 'placement_officer' | string;
 
 export type PlacementStatus = 'not_placed' | 'placed' | string;
@@ -12,6 +11,7 @@ export interface User {
   phone?: string;
   role: UserRole;
   school_id?: string;
+  password?: string; // Added for admin user creation
 }
 
 export interface Student {

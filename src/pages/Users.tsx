@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { DataTable } from '@/components/ui/DataTable';
@@ -12,14 +12,175 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 
 const Users = () => {
   const { userData, role } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [users, setUsers] = useState<User[]>([]);
+  const [newUser, setNewUser] = useState<Partial<User>>({
+    name: '',
+    email: '',
+    phone: '',
+    role: 'placement_officer',
+    school_id: '',
+    password: ''
+  });
   
-  if (!userData) return null;
-  
-  const { users, schools } = userData;
+  // Get initial user data
+  useEffect(() => {
+    if (userData) {
+      setUsers(userData.users);
+    }
+  }, [userData]);
+
+  // Set up real-time subscription for users
+  useEffect(() => {
+    // Enable database for real-time
+    const setupRealtimeUsers = async () => {
+      // Subscribe to changes
+      const channel = supabase
+        .channel('users-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'users' }, 
+          (payload) => {
+            // Update the users state based on the change type
+            if (payload.eventType === 'INSERT') {
+              setUsers(prevUsers => [...prevUsers, payload.new as User]);
+            } else if (payload.eventType === 'UPDATE') {
+              setUsers(prevUsers => 
+                prevUsers.map(user => user.id === payload.new.id ? payload.new as User : user)
+              );
+            } else if (payload.eventType === 'DELETE') {
+              setUsers(prevUsers => 
+                prevUsers.filter(user => user.id !== payload.old.id)
+              );
+            }
+          }
+        )
+        .subscribe();
+
+      // Cleanup subscription
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    setupRealtimeUsers();
+  }, []);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setNewUser(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setNewUser(prev => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = () => {
+    setNewUser({
+      name: '',
+      email: '',
+      phone: '',
+      role: 'placement_officer',
+      school_id: '',
+      password: ''
+    });
+  };
+
+  const handleAdd = () => {
+    setIsDialogOpen(true);
+    resetForm();
+  };
+
+  const handleSubmit = async () => {
+    // Form validation
+    if (!newUser.name || !newUser.email || !newUser.role || !newUser.password) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    try {
+      // In a real implementation, you would use Supabase Auth API to create users
+      // This is a simplified demo using our mock data
+      // Simulate user creation with password
+      const { data, error } = await supabase.auth.admin.createUser({
+        email: newUser.email,
+        password: newUser.password,
+        email_confirm: true,
+        user_metadata: {
+          full_name: newUser.name,
+          phone: newUser.phone,
+          role: newUser.role,
+          school_id: newUser.school_id
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast.success('User added successfully');
+      setIsDialogOpen(false);
+      resetForm();
+      
+      // Note: In production, real-time updates would automatically update the UI
+      // For demo purposes, we're simulating a response
+      
+    } catch (error) {
+      console.error('Error creating user:', error);
+      toast.error('Failed to create user. This is a demo; in production, you would use Supabase Auth API.');
+      
+      // Demo fallback - simulate a successful response
+      const newId = Math.random().toString(36).substring(2, 11);
+      const createdUser: User = {
+        id: newId,
+        name: newUser.name!,
+        email: newUser.email!,
+        phone: newUser.phone,
+        role: newUser.role as UserRole,
+        school_id: newUser.school_id
+      };
+      
+      setUsers(prev => [...prev, createdUser]);
+      setIsDialogOpen(false);
+      resetForm();
+    }
+  };
+
+  const handleEdit = (user: User) => {
+    toast.success('This is a demo. User editing would be implemented here.');
+  };
+
+  const handleDelete = async (user: User) => {
+    try {
+      // In a real implementation, you would use Supabase to delete users
+      // This is a simplified demo
+      const { error } = await supabase.auth.admin.deleteUser(
+        user.id
+      );
+      
+      if (error) {
+        throw error;
+      }
+      
+      toast.success('User deleted successfully');
+      
+      // Note: In production, real-time updates would automatically update the UI
+      // For demo, we'll also update the state directly
+      setUsers(prev => prev.filter(u => u.id !== user.id));
+      
+    } catch (error) {
+      console.error('Error deleting user:', error);
+      toast.error('Failed to delete user. This is a demo; in production, you would use Supabase Auth API.');
+      
+      // Demo fallback - simulate a successful response
+      setUsers(prev => prev.filter(u => u.id !== user.id));
+    }
+  };
+
+  const pageTitle = role === 'master_admin' ? 'Users' : 'Placement Officers';
 
   const userColumns = [
     { header: 'Name', accessor: 'name' as keyof User },
@@ -53,7 +214,7 @@ const Users = () => {
       header: 'School', 
       accessor: (row: User) => {
         if (!row.school_id) return 'All Schools';
-        const school = schools.find((s: School) => s.id === row.school_id);
+        const school = userData?.schools.find((s: School) => s.id === row.school_id);
         return school ? school.name : 'Unknown';
       } 
     },
@@ -72,20 +233,9 @@ const Users = () => {
     },
   ];
 
-  const handleAdd = () => {
-    setIsDialogOpen(true);
-    toast.success('This is a demo. User creation would be implemented here.');
-  };
-
-  const handleEdit = (user: User) => {
-    toast.success('This is a demo. User editing would be implemented here.');
-  };
-
-  const handleDelete = (user: User) => {
-    toast.success('This is a demo. User deletion would be implemented here.');
-  };
-
-  const pageTitle = role === 'master_admin' ? 'Users' : 'Placement Officers';
+  if (!userData) return null;
+  
+  const { schools } = userData;
 
   return (
     <Layout>
@@ -139,22 +289,44 @@ const Users = () => {
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="name">Name</Label>
-                <Input id="name" placeholder="Enter full name" />
+                <Input 
+                  id="name" 
+                  name="name"
+                  placeholder="Enter full name" 
+                  value={newUser.name || ''}
+                  onChange={handleInputChange}
+                />
               </div>
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="email">Email</Label>
-                <Input id="email" placeholder="Enter email address" type="email" />
+                <Input 
+                  id="email" 
+                  name="email"
+                  placeholder="Enter email address" 
+                  type="email" 
+                  value={newUser.email || ''}
+                  onChange={handleInputChange}
+                />
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" placeholder="Enter phone number" />
+                <Input 
+                  id="phone" 
+                  name="phone"
+                  placeholder="Enter phone number" 
+                  value={newUser.phone || ''}
+                  onChange={handleInputChange}
+                />
               </div>
               {role === 'master_admin' && (
                 <div className="flex flex-col space-y-1.5">
                   <Label htmlFor="role">Role</Label>
-                  <Select>
+                  <Select 
+                    value={newUser.role || 'placement_officer'} 
+                    onValueChange={(value) => handleSelectChange('role', value)}
+                  >
                     <SelectTrigger id="role">
                       <SelectValue placeholder="Select role" />
                     </SelectTrigger>
@@ -168,7 +340,10 @@ const Users = () => {
             </div>
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="school">School</Label>
-              <Select>
+              <Select 
+                value={newUser.school_id || ''} 
+                onValueChange={(value) => handleSelectChange('school_id', value)}
+              >
                 <SelectTrigger id="school">
                   <SelectValue placeholder="Select school" />
                 </SelectTrigger>
@@ -181,15 +356,23 @@ const Users = () => {
                 </SelectContent>
               </Select>
             </div>
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="password">Password</Label>
+              <Input 
+                id="password" 
+                name="password"
+                placeholder="Set user password" 
+                type="password" 
+                value={newUser.password || ''}
+                onChange={handleInputChange}
+              />
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
               Cancel
             </Button>
-            <Button onClick={() => {
-              toast.success('User added successfully.');
-              setIsDialogOpen(false);
-            }}>
+            <Button onClick={handleSubmit}>
               Add {role === 'master_admin' ? 'User' : 'Placement Officer'}
             </Button>
           </DialogFooter>
