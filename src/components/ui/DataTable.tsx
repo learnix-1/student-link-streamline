@@ -5,19 +5,20 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ChevronLeft, ChevronRight, Search } from 'lucide-react';
 
-interface Column<T> {
+export interface Column<T> {
   header: string;
   accessor: keyof T | ((row: T) => React.ReactNode);
   cell?: (row: T) => React.ReactNode;
 }
 
-interface DataTableProps<T> {
+export interface DataTableProps<T> {
   data: T[];
   columns: Column<T>[];
   searchField?: keyof T;
   pagination?: boolean;
   itemsPerPage?: number;
   className?: string;
+  onRowClick?: (row: T) => void;
 }
 
 export function DataTable<T>({
@@ -27,6 +28,7 @@ export function DataTable<T>({
   pagination = true,
   itemsPerPage = 10,
   className,
+  onRowClick,
 }: DataTableProps<T>) {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState('');
@@ -89,7 +91,11 @@ export function DataTable<T>({
           <TableBody>
             {paginatedData.length > 0 ? (
               paginatedData.map((row, rowIndex) => (
-                <TableRow key={rowIndex} className="hover:bg-muted/50 transition-colors">
+                <TableRow 
+                  key={rowIndex} 
+                  className={`hover:bg-muted/50 transition-colors ${onRowClick ? 'cursor-pointer' : ''}`}
+                  onClick={() => onRowClick && onRowClick(row)}
+                >
                   {columns.map((column, colIndex) => (
                     <TableCell key={colIndex}>
                       {column.cell
