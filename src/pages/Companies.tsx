@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { DataTable } from '@/components/ui/DataTable';
-import { Company } from '@/types';
+import { Company, CompanyStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,7 +36,6 @@ const Companies = () => {
       
       if (error) throw error;
       
-      // Type assertion to match our Company type
       setCompanies(data as Company[] || []);
     } catch (error) {
       console.error('Error fetching companies:', error);
@@ -52,7 +50,7 @@ const Companies = () => {
     { header: 'Contact Person', accessor: 'contact_person' as keyof Company },
     { header: 'Contact Email', accessor: 'contact_email' as keyof Company },
     { 
-      header: 'Status', 
+      header: 'Collaboration Status', 
       accessor: 'collaboration_status' as keyof Company,
       cell: (row: Company) => (
         <div className="flex items-center">
@@ -62,6 +60,24 @@ const Companies = () => {
             }`}
           />
           {row.collaboration_status === 'active' ? 'Active' : 'Inactive'}
+        </div>
+      )
+    },
+    { 
+      header: 'Company Status', 
+      accessor: 'company_status' as keyof Company,
+      cell: (row: Company) => (
+        <div className="flex items-center">
+          <span 
+            className={`inline-block w-2 h-2 rounded-full mr-2 ${
+              row.company_status === 'partner' ? 'bg-green-500' :
+              row.company_status === 'prospect' ? 'bg-blue-500' :
+              row.company_status === 'former_partner' ? 'bg-amber-500' : 'bg-slate-400'
+            }`}
+          />
+          {row.company_status === 'partner' ? 'Partner' :
+           row.company_status === 'prospect' ? 'Prospect' :
+           row.company_status === 'former_partner' ? 'Former Partner' : 'Inactive'}
         </div>
       )
     },
@@ -162,7 +178,7 @@ const Companies = () => {
                   <DataTable 
                     data={companies} 
                     columns={companyColumns} 
-                    searchField="name" as keyof Company
+                    searchField="name"
                     onRowClick={viewCompanyDetails}
                   />
                 )}
@@ -215,6 +231,21 @@ const Companies = () => {
                           }`}
                         />
                         {selectedCompany?.collaboration_status === 'active' ? 'Active' : 'Inactive'}
+                      </div>
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-medium text-muted-foreground mb-1">Company Status</h3>
+                      <div className="flex items-center">
+                        <span 
+                          className={`inline-block w-2 h-2 rounded-full mr-2 ${
+                            selectedCompany?.company_status === 'partner' ? 'bg-green-500' :
+                            selectedCompany?.company_status === 'prospect' ? 'bg-blue-500' :
+                            selectedCompany?.company_status === 'former_partner' ? 'bg-amber-500' : 'bg-slate-400'
+                          }`}
+                        />
+                        {selectedCompany?.company_status === 'partner' ? 'Partner' :
+                         selectedCompany?.company_status === 'prospect' ? 'Prospect' :
+                         selectedCompany?.company_status === 'former_partner' ? 'Former Partner' : 'Inactive'}
                       </div>
                     </div>
                     <div className="md:col-span-2">
@@ -295,9 +326,9 @@ const Companies = () => {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="status">Collaboration Status</Label>
+                <Label htmlFor="collaboration_status">Collaboration Status</Label>
                 <Select>
-                  <SelectTrigger id="status">
+                  <SelectTrigger id="collaboration_status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent position="popper">
@@ -307,9 +338,23 @@ const Companies = () => {
                 </Select>
               </div>
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="roles">Job Roles Offered</Label>
-                <Input id="roles" placeholder="E.g. Developer, Designer (comma separated)" />
+                <Label htmlFor="company_status">Company Status</Label>
+                <Select>
+                  <SelectTrigger id="company_status">
+                    <SelectValue placeholder="Select status" />
+                  </SelectTrigger>
+                  <SelectContent position="popper">
+                    <SelectItem value="prospect">Prospect</SelectItem>
+                    <SelectItem value="partner">Partner</SelectItem>
+                    <SelectItem value="inactive">Inactive</SelectItem>
+                    <SelectItem value="former_partner">Former Partner</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
+            </div>
+            <div className="flex flex-col space-y-1.5">
+              <Label htmlFor="roles">Job Roles Offered</Label>
+              <Input id="roles" placeholder="E.g. Developer, Designer (comma separated)" />
             </div>
           </div>
           <DialogFooter>
