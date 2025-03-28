@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -29,12 +30,16 @@ const Navbar = () => {
     { path: '/students', name: 'Students', icon: Users },
     { path: '/companies', name: 'Companies', icon: Briefcase },
     { path: '/placements', name: 'Placements', icon: Building },
-    {
-      name: 'Officer Performance',
-      href: '/officer-performance',
-      icon: Award,
-    },
   ];
+  
+  // Only show officer performance link to master_admin and project_lead roles
+  if (role === 'master_admin' || role === 'project_lead') {
+    navItems.push({
+      path: '/officer-performance',
+      name: 'Officer Performance',
+      icon: Award,
+    });
+  }
   
   if (role === 'master_admin') {
     navItems.push({ path: '/schools', name: 'Schools', icon: School });

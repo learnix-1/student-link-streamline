@@ -1,6 +1,6 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
+import { useNavigate } from 'react-router-dom';
 import Layout from '@/components/layout/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { DataTable } from '@/components/ui/DataTable';
@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Placement, PlacementOfficer } from '@/types';
-import { BarChart, Activity, Award, Building, Users, Calendar, CheckCircle } from 'lucide-react';
+import { BarChart, Activity, Award, Building, Users, Calendar, CheckCircle, ShieldAlert } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -26,9 +26,18 @@ interface OfficerMetrics {
 }
 
 const OfficerPerformance = () => {
-  const { userData } = useAuth();
+  const { userData, role } = useAuth();
+  const navigate = useNavigate();
   const [metrics, setMetrics] = useState<OfficerMetrics[]>([]);
   const [loading, setLoading] = useState(true);
+
+  // Restrict access to admin roles only
+  useEffect(() => {
+    if (role !== 'master_admin' && role !== 'project_lead') {
+      toast.error('You do not have permission to access this page');
+      navigate('/dashboard');
+    }
+  }, [role, navigate]);
 
   useEffect(() => {
     if (userData) {
@@ -259,6 +268,11 @@ const OfficerPerformance = () => {
       )
     },
   ];
+
+  // Only render the page content if the user has appropriate role
+  if (role !== 'master_admin' && role !== 'project_lead') {
+    return null;
+  }
 
   return (
     <Layout>

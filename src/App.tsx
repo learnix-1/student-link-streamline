@@ -1,10 +1,11 @@
+
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { AuthProvider } from "./context/AuthContext";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
 // Pages
 import Index from "./pages/Index";
@@ -27,6 +28,45 @@ const queryClient = new QueryClient({
   },
 });
 
+// Protected route component
+const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { isAuthenticated, role } = useAuth();
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  if (role !== 'master_admin' && role !== 'project_lead') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  
+  return <>{children}</>;
+};
+
+// Create the app routes with router
+const AppRoutes = () => {
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/students" element={<Students />} />
+      <Route path="/companies" element={<Companies />} />
+      <Route path="/placements" element={<Placements />} />
+      <Route path="/schools" element={<Schools />} />
+      <Route path="/users" element={<Users />} />
+      <Route 
+        path="/officer-performance" 
+        element={
+          <ProtectedAdminRoute>
+            <OfficerPerformance />
+          </ProtectedAdminRoute>
+        } 
+      />
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+};
+
 const App = () => {
   return (
     <React.StrictMode>
@@ -36,17 +76,7 @@ const App = () => {
             <Toaster />
             <Sonner />
             <BrowserRouter>
-              <Routes>
-                <Route path="/" element={<Index />} />
-                <Route path="/dashboard" element={<Dashboard />} />
-                <Route path="/students" element={<Students />} />
-                <Route path="/companies" element={<Companies />} />
-                <Route path="/placements" element={<Placements />} />
-                <Route path="/schools" element={<Schools />} />
-                <Route path="/users" element={<Users />} />
-                <Route path="/officer-performance" element={<OfficerPerformance />} />
-                <Route path="*" element={<NotFound />} />
-              </Routes>
+              <AppRoutes />
             </BrowserRouter>
           </TooltipProvider>
         </AuthProvider>
