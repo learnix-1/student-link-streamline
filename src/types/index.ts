@@ -73,6 +73,18 @@ export interface PlacementOfficer {
   school_name?: string;
 }
 
+export interface OfficerMetrics {
+  id: string;
+  name: string;
+  totalPlacements: number;
+  completedPlacements: number;
+  inProgressPlacements: number;
+  companiesCollaborated: number;
+  averagePlacementTime: number; // in days
+  placementSuccessRate: number; // percentage
+  lastPlacementDate: string;
+}
+
 export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
