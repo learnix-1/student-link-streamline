@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { DataTable } from '@/components/ui/DataTable';
-import { User, School } from '@/types';
+import { User, School, UserRole } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,24 +26,19 @@ const Users = () => {
     password: ''
   });
   
-  // Get initial user data
   useEffect(() => {
     if (userData) {
       setUsers(userData.users);
     }
   }, [userData]);
 
-  // Set up real-time subscription for users
   useEffect(() => {
-    // Enable database for real-time
     const setupRealtimeUsers = async () => {
-      // Subscribe to changes
       const channel = supabase
         .channel('users-changes')
         .on('postgres_changes', 
           { event: '*', schema: 'public', table: 'users' }, 
           (payload) => {
-            // Update the users state based on the change type
             if (payload.eventType === 'INSERT') {
               setUsers(prevUsers => [...prevUsers, payload.new as User]);
             } else if (payload.eventType === 'UPDATE') {
@@ -60,7 +54,6 @@ const Users = () => {
         )
         .subscribe();
 
-      // Cleanup subscription
       return () => {
         supabase.removeChannel(channel);
       };
@@ -95,16 +88,12 @@ const Users = () => {
   };
 
   const handleSubmit = async () => {
-    // Form validation
     if (!newUser.name || !newUser.email || !newUser.role || !newUser.password) {
       toast.error('Please fill in all required fields');
       return;
     }
     
     try {
-      // In a real implementation, you would use Supabase Auth API to create users
-      // This is a simplified demo using our mock data
-      // Simulate user creation with password
       const { data, error } = await supabase.auth.admin.createUser({
         email: newUser.email,
         password: newUser.password,
@@ -125,14 +114,10 @@ const Users = () => {
       setIsDialogOpen(false);
       resetForm();
       
-      // Note: In production, real-time updates would automatically update the UI
-      // For demo purposes, we're simulating a response
-      
     } catch (error) {
       console.error('Error creating user:', error);
       toast.error('Failed to create user. This is a demo; in production, you would use Supabase Auth API.');
       
-      // Demo fallback - simulate a successful response
       const newId = Math.random().toString(36).substring(2, 11);
       const createdUser: User = {
         id: newId,
@@ -155,8 +140,6 @@ const Users = () => {
 
   const handleDelete = async (user: User) => {
     try {
-      // In a real implementation, you would use Supabase to delete users
-      // This is a simplified demo
       const { error } = await supabase.auth.admin.deleteUser(
         user.id
       );
@@ -167,15 +150,12 @@ const Users = () => {
       
       toast.success('User deleted successfully');
       
-      // Note: In production, real-time updates would automatically update the UI
-      // For demo, we'll also update the state directly
       setUsers(prev => prev.filter(u => u.id !== user.id));
       
     } catch (error) {
       console.error('Error deleting user:', error);
       toast.error('Failed to delete user. This is a demo; in production, you would use Supabase Auth API.');
       
-      // Demo fallback - simulate a successful response
       setUsers(prev => prev.filter(u => u.id !== user.id));
     }
   };
@@ -274,7 +254,6 @@ const Users = () => {
         </Card>
       </div>
 
-      {/* Add User Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>

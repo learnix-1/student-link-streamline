@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -10,7 +9,8 @@ import {
   School, 
   LogOut,
   Menu,
-  X
+  X,
+  Award
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { cn } from '@/lib/utils';
@@ -29,6 +29,11 @@ const Navbar = () => {
     { path: '/students', name: 'Students', icon: Users },
     { path: '/companies', name: 'Companies', icon: Briefcase },
     { path: '/placements', name: 'Placements', icon: Building },
+    {
+      name: 'Officer Performance',
+      href: '/officer-performance',
+      icon: Award,
+    },
   ];
   
   if (role === 'master_admin') {

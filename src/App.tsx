@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
@@ -16,6 +15,7 @@ import Placements from "./pages/Placements";
 import Schools from "./pages/Schools";
 import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
+import OfficerPerformance from './pages/OfficerPerformance';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -44,6 +44,7 @@ const App = () => {
                 <Route path="/placements" element={<Placements />} />
                 <Route path="/schools" element={<Schools />} />
                 <Route path="/users" element={<Users />} />
+                <Route path="/officer-performance" element={<OfficerPerformance />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </BrowserRouter>

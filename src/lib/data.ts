@@ -117,6 +117,7 @@ export const companies: Company[] = [
     contact_email: 'alex@technova.com',
     contact_phone: '(555) 890-1234',
     collaboration_status: 'active',
+    company_status: 'partner',
     job_roles_offered: ['Software Engineer', 'Product Manager', 'UX Designer'],
     created_at: new Date(2023, 1, 15).toISOString(),
   },
@@ -127,6 +128,7 @@ export const companies: Company[] = [
     contact_email: 'patricia@globalfinance.com',
     contact_phone: '(555) 901-2345',
     collaboration_status: 'active',
+    company_status: 'partner',
     job_roles_offered: ['Financial Analyst', 'Investment Banking Associate', 'Risk Manager'],
     created_at: new Date(2023, 2, 20).toISOString(),
   },
@@ -137,6 +139,7 @@ export const companies: Company[] = [
     contact_email: 'james@creativeworks.com',
     contact_phone: '(555) 012-3456',
     collaboration_status: 'active',
+    company_status: 'prospect',
     job_roles_offered: ['Graphic Designer', 'Creative Director', 'Art Director'],
     created_at: new Date(2023, 3, 10).toISOString(),
   },
@@ -147,6 +150,7 @@ export const companies: Company[] = [
     contact_email: 'sophia@datainsights.com',
     contact_phone: '(555) 123-4567',
     collaboration_status: 'inactive',
+    company_status: 'former_partner',
     job_roles_offered: ['Data Scientist', 'Data Analyst', 'Machine Learning Engineer'],
     created_at: new Date(2023, 4, 5).toISOString(),
   },
@@ -161,9 +165,11 @@ export const students: Student[] = [
     email: 'ryan@student.edu',
     phone: '(555) 234-5678',
     course: 'Computer Science',
+    course_specialization: 'Software Development',
     school_id: schools[0].id,
     school_name: schools[0].name,
     placement_status: 'placed',
+    student_status: 'completed',
     interviews_attended: 3,
     interview_results: 'Performed well in technical interviews. Strong problem-solving skills.',
     created_at: new Date(2023, 1, 10).toISOString(),
@@ -174,9 +180,11 @@ export const students: Student[] = [
     email: 'olivia@student.edu',
     phone: '(555) 345-6789',
     course: 'Software Engineering',
+    course_specialization: 'Web Development',
     school_id: schools[0].id,
     school_name: schools[0].name,
     placement_status: 'placed',
+    student_status: 'completed',
     interviews_attended: 4,
     interview_results: 'Excellent coding skills and system design knowledge.',
     created_at: new Date(2023, 1, 12).toISOString(),
@@ -187,9 +195,11 @@ export const students: Student[] = [
     email: 'ethan@student.edu',
     phone: '(555) 456-7890',
     course: 'Data Science',
+    course_specialization: 'Machine Learning',
     school_id: schools[0].id,
     school_name: schools[0].name,
     placement_status: 'not_placed',
+    student_status: 'seeking_placement',
     interviews_attended: 2,
     interview_results: 'Good theoretical knowledge, needs more practical experience.',
     created_at: new Date(2023, 1, 15).toISOString(),
@@ -202,9 +212,11 @@ export const students: Student[] = [
     email: 'emma@student.edu',
     phone: '(555) 567-8901',
     course: 'Business Administration',
+    course_specialization: 'Marketing',
     school_id: schools[1].id,
     school_name: schools[1].name,
     placement_status: 'placed',
+    student_status: 'completed',
     interviews_attended: 3,
     interview_results: 'Strong leadership qualities and analytical skills.',
     created_at: new Date(2023, 2, 5).toISOString(),
@@ -215,9 +227,11 @@ export const students: Student[] = [
     email: 'daniel@student.edu',
     phone: '(555) 678-9012',
     course: 'Finance',
+    course_specialization: 'Investment Banking',
     school_id: schools[1].id,
     school_name: schools[1].name,
     placement_status: 'not_placed',
+    student_status: 'seeking_placement',
     interviews_attended: 1,
     interview_results: 'Good understanding of financial concepts.',
     created_at: new Date(2023, 2, 8).toISOString(),
@@ -230,9 +244,11 @@ export const students: Student[] = [
     email: 'ava@student.edu',
     phone: '(555) 789-0123',
     course: 'Graphic Design',
+    course_specialization: 'UI/UX Design',
     school_id: schools[2].id,
     school_name: schools[2].name,
     placement_status: 'placed',
+    student_status: 'completed',
     interviews_attended: 2,
     interview_results: 'Impressive portfolio and creative thinking.',
     created_at: new Date(2023, 3, 12).toISOString(),
@@ -243,9 +259,11 @@ export const students: Student[] = [
     email: 'noah@student.edu',
     phone: '(555) 890-1234',
     course: 'UX Design',
+    course_specialization: 'Interaction Design',
     school_id: schools[2].id,
     school_name: schools[2].name,
     placement_status: 'not_placed',
+    student_status: 'seeking_placement',
     interviews_attended: 3,
     interview_results: 'Good design skills, needs to improve on user research methodologies.',
     created_at: new Date(2023, 3, 15).toISOString(),
@@ -300,11 +318,45 @@ export const placements: Placement[] = [
   },
 ];
 
+// Add extra placements for dashboard metrics
+placements.push(
+  {
+    id: uuidv4(),
+    student_id: students[2].id,
+    student_name: students[2].name,
+    company_id: companies[3].id,
+    company_name: companies[3].name,
+    placement_officer_id: placementOfficers[0].id,
+    placement_officer_name: placementOfficers[0].name,
+    placement_date: new Date(2023, 6, 5).toISOString(),
+    status: 'in_progress',
+  },
+  {
+    id: uuidv4(),
+    student_id: students[4].id,
+    student_name: students[4].name,
+    company_id: companies[1].id,
+    company_name: companies[1].name,
+    placement_officer_id: placementOfficers[0].id,
+    placement_officer_name: placementOfficers[0].name,
+    placement_date: new Date(2023, 6, 10).toISOString(),
+    status: 'in_progress',
+  }
+);
+
 // Combine all users
 export const users: User[] = [
   masterAdmin,
   ...projectLeads,
-  ...placementOfficerUsers
+  ...placementOfficerUsers,
+  // Add the new user for neema@haca.com
+  {
+    id: uuidv4(),
+    name: 'Neema',
+    email: 'neema@haca.com',
+    role: 'placement_officer',
+    school_id: schools[0].id,
+  }
 ];
 
 // Dashboard statistics
@@ -320,6 +372,10 @@ export const dashboardStats: DashboardStats = {
 export const authenticateUser = (email: string, password: string): User | null => {
   if (email === masterAdmin.email && password === 'password') {
     return masterAdmin;
+  }
+  
+  if (email === 'neema@haca.com' && password === 'password') {
+    return users.find(u => u.email === 'neema@haca.com') || null;
   }
   
   const user = users.find(user => user.email === email && password === 'password');
