@@ -30,14 +30,14 @@ const queryClient = new QueryClient({
 });
 
 // Protected route component
-const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
+const ProtectedRoute = ({ children, requiredRole }: { children: React.ReactNode, requiredRole?: string[] }) => {
   const { isAuthenticated, role } = useAuth();
   
   if (!isAuthenticated) {
     return <Navigate to="/" replace />;
   }
   
-  if (role !== 'master_admin' && role !== 'project_lead') {
+  if (requiredRole && !requiredRole.includes(role as string)) {
     return <Navigate to="/dashboard" replace />;
   }
   
@@ -49,19 +49,26 @@ const AppRoutes = () => {
   return (
     <Routes>
       <Route path="/" element={<Index />} />
-      <Route path="/dashboard" element={<Dashboard />} />
-      <Route path="/students" element={<Students />} />
-      <Route path="/companies" element={<Companies />} />
-      <Route path="/placements" element={<Placements />} />
-      <Route path="/schools" element={<Schools />} />
-      <Route path="/schools/add" element={<SchoolsAdd />} />
-      <Route path="/users" element={<Users />} />
+      <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+      <Route path="/students" element={<ProtectedRoute><Students /></ProtectedRoute>} />
+      <Route path="/companies" element={<ProtectedRoute><Companies /></ProtectedRoute>} />
+      <Route path="/placements" element={<ProtectedRoute><Placements /></ProtectedRoute>} />
+      <Route path="/schools" element={<ProtectedRoute><Schools /></ProtectedRoute>} />
+      <Route 
+        path="/schools/add" 
+        element={
+          <ProtectedRoute requiredRole={['master_admin', 'project_lead']}>
+            <SchoolsAdd />
+          </ProtectedRoute>
+        } 
+      />
+      <Route path="/users" element={<ProtectedRoute><Users /></ProtectedRoute>} />
       <Route 
         path="/officer-performance" 
         element={
-          <ProtectedAdminRoute>
+          <ProtectedRoute requiredRole={['master_admin', 'project_lead']}>
             <OfficerPerformance />
-          </ProtectedAdminRoute>
+          </ProtectedRoute>
         } 
       />
       <Route path="*" element={<NotFound />} />

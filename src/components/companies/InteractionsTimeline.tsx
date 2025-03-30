@@ -1,273 +1,170 @@
 
 import React, { useState, useEffect } from 'react';
-import { Clock, MessageSquare, Plus } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from 'sonner';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import * as z from 'zod';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { format } from 'date-fns';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import AddInteractionDialog from './AddInteractionDialog';
 
-interface InteractionType {
+interface Interaction {
   id: string;
   company_id: string;
   placement_officer_id: string;
   placement_officer_name?: string;
-  interaction_date: string;
-  description: string;
   interaction_type: string;
-  created_at: string;
+  description: string;
+  interaction_date: string;
 }
 
 interface InteractionsTimelineProps {
   companyId: string;
 }
 
-const formSchema = z.object({
-  description: z.string().min(1, { message: "Description is required" }),
-  interaction_type: z.string().min(1, { message: "Interaction type is required" }),
-  placement_officer_id: z.string().uuid({ message: "Valid placement officer is required" }),
-});
-
 const InteractionsTimeline: React.FC<InteractionsTimelineProps> = ({ companyId }) => {
-  const [interactions, setInteractions] = useState<InteractionType[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [placementOfficers, setPlacementOfficers] = useState<{ id: string; name: string }[]>([]);
-
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
-    defaultValues: {
-      description: "",
-      interaction_type: "meeting",
-      placement_officer_id: "",
-    },
-  });
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchInteractions();
-    fetchPlacementOfficers();
+    
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('interactions-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'company_interactions', filter: `company_id=eq.${companyId}` }, 
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            const newInteraction = payload.new as Interaction;
+            // Fetch the officer name for the new interaction
+            fetchOfficerName(newInteraction).then(updatedInteraction => {
+              setInteractions(prev => [updatedInteraction, ...prev]);
+            });
+          } else if (payload.eventType === 'UPDATE') {
+            setInteractions(prev => 
+              prev.map(interaction => 
+                interaction.id === payload.new.id ? payload.new as Interaction : interaction
+              )
+            );
+          } else if (payload.eventType === 'DELETE') {
+            setInteractions(prev => 
+              prev.filter(interaction => interaction.id !== payload.old.id)
+            );
+          }
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [companyId]);
 
   const fetchInteractions = async () => {
-    setIsLoading(true);
+    setLoading(true);
     try {
       const { data, error } = await supabase
         .from('company_interactions')
-        .select(`
-          id, 
-          company_id, 
-          placement_officer_id, 
-          interaction_date, 
-          description, 
-          interaction_type, 
-          created_at,
-          placement_officers(name)
-        `)
+        .select('*')
         .eq('company_id', companyId)
         .order('interaction_date', { ascending: false });
-
+        
       if (error) throw error;
 
-      const formattedData = data.map(item => ({
-        ...item,
-        placement_officer_name: item.placement_officers ? item.placement_officers.name : 'Unknown',
-      }));
-
-      setInteractions(formattedData);
+      // Fetch officer names for all interactions
+      const interactionsWithNames = await Promise.all(
+        (data || []).map(fetchOfficerName)
+      );
+      
+      setInteractions(interactionsWithNames);
     } catch (error) {
       console.error('Error fetching interactions:', error);
-      toast.error('Failed to load interaction history');
+      toast.error('Failed to load company interactions');
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  const fetchPlacementOfficers = async () => {
+  const fetchOfficerName = async (interaction: Interaction): Promise<Interaction> => {
     try {
       const { data, error } = await supabase
         .from('placement_officers')
-        .select('id, name');
-
+        .select('name')
+        .eq('id', interaction.placement_officer_id)
+        .single();
+        
       if (error) throw error;
-      setPlacementOfficers(data || []);
+      
+      return {
+        ...interaction,
+        placement_officer_name: data?.name || 'Unknown Officer'
+      };
     } catch (error) {
-      console.error('Error fetching placement officers:', error);
+      console.error('Error fetching officer name:', error);
+      return {
+        ...interaction,
+        placement_officer_name: 'Unknown Officer'
+      };
     }
   };
 
-  const onSubmit = async (values: z.infer<typeof formSchema>) => {
-    try {
-      const { error } = await supabase
-        .from('company_interactions')
-        .insert({
-          company_id: companyId,
-          placement_officer_id: values.placement_officer_id,
-          description: values.description,
-          interaction_type: values.interaction_type,
-        });
-
-      if (error) throw error;
-
-      toast.success('Interaction added successfully');
-      form.reset();
-      setIsDialogOpen(false);
-      fetchInteractions();
-    } catch (error) {
-      console.error('Error adding interaction:', error);
-      toast.error('Failed to add interaction');
-    }
-  };
-
-  const getInteractionTypeLabel = (type: string) => {
-    switch (type) {
-      case 'meeting': return 'Meeting';
-      case 'call': return 'Phone Call';
-      case 'email': return 'Email';
-      case 'visit': return 'Site Visit';
-      default: return type.charAt(0).toUpperCase() + type.slice(1);
+  const getInteractionIcon = (type: string) => {
+    switch (type.toLowerCase()) {
+      case 'meeting':
+        return '🤝';
+      case 'call':
+        return '📞';
+      case 'email':
+        return '📧';
+      case 'site_visit':
+        return '🏢';
+      case 'job_fair':
+        return '🎪';
+      default:
+        return '📝';
     }
   };
 
   return (
-    <Card className="mt-6">
-      <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-lg font-medium">Interaction History</CardTitle>
-        <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm" className="hover-transition">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Interaction
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[525px]">
-            <DialogHeader>
-              <DialogTitle>Add New Interaction</DialogTitle>
-              <DialogDescription>
-                Record a new interaction with this company.
-              </DialogDescription>
-            </DialogHeader>
-            <Form {...form}>
-              <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4 pt-4">
-                <FormField
-                  control={form.control}
-                  name="interaction_type"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Interaction Type</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select interaction type" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="meeting">Meeting</SelectItem>
-                          <SelectItem value="call">Phone Call</SelectItem>
-                          <SelectItem value="email">Email</SelectItem>
-                          <SelectItem value="visit">Site Visit</SelectItem>
-                          <SelectItem value="other">Other</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="placement_officer_id"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Placement Officer</FormLabel>
-                      <Select 
-                        onValueChange={field.onChange} 
-                        defaultValue={field.value}
-                      >
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select placement officer" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          {placementOfficers.map(officer => (
-                            <SelectItem key={officer.id} value={officer.id}>
-                              {officer.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <FormField
-                  control={form.control}
-                  name="description"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Description</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Describe the interaction..." 
-                          className="resize-none" 
-                          rows={4}
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-                <DialogFooter>
-                  <Button type="submit">Save Interaction</Button>
-                </DialogFooter>
-              </form>
-            </Form>
-          </DialogContent>
-        </Dialog>
+    <Card>
+      <CardHeader className="pb-2 flex flex-row items-center justify-between">
+        <div>
+          <CardTitle className="text-lg font-medium">Interaction History</CardTitle>
+          <CardDescription>
+            Record of all interactions with this company
+          </CardDescription>
+        </div>
+        <AddInteractionDialog companyId={companyId} />
       </CardHeader>
       <CardContent>
-        {isLoading ? (
+        {loading ? (
           <div className="flex justify-center items-center h-40">
             <p>Loading interactions...</p>
           </div>
         ) : interactions.length === 0 ? (
-          <div className="text-center py-10 text-muted-foreground">
-            <MessageSquare className="h-10 w-10 mx-auto mb-2 opacity-50" />
+          <div className="text-center py-8 text-muted-foreground">
             <p>No interactions recorded yet.</p>
-            <p className="text-sm mt-1">Record your first interaction with this company.</p>
+            <p className="text-sm mt-1">Record your first interaction using the button above.</p>
           </div>
         ) : (
-          <div className="relative space-y-4">
-            {/* Timeline line */}
-            <div className="absolute left-3 top-5 bottom-0 w-px bg-border"></div>
-            
+          <div className="space-y-6">
             {interactions.map((interaction) => (
-              <div key={interaction.id} className="flex gap-4 relative">
-                <div className="h-6 w-6 rounded-full bg-accent/10 flex items-center justify-center relative z-10 mt-1">
-                  <Clock className="h-3 w-3 text-accent-foreground" />
+              <div key={interaction.id} className="flex gap-4">
+                <div className="flex-shrink-0 w-10 h-10 bg-accent/10 rounded-full flex items-center justify-center text-xl">
+                  {getInteractionIcon(interaction.interaction_type)}
                 </div>
-                <div className="flex-1 bg-card border rounded-md p-3">
-                  <div className="flex justify-between items-start mb-1">
-                    <div>
-                      <span className="font-medium">{getInteractionTypeLabel(interaction.interaction_type)}</span>
-                      <span className="text-muted-foreground ml-2 text-sm">with {interaction.placement_officer_name}</span>
-                    </div>
-                    <span className="text-xs text-muted-foreground">
-                      {format(new Date(interaction.interaction_date), 'MMM d, yyyy - h:mm a')}
+                <div className="flex-grow">
+                  <div className="flex items-center justify-between">
+                    <h4 className="font-medium text-base capitalize">
+                      {interaction.interaction_type}
+                    </h4>
+                    <span className="text-sm text-muted-foreground">
+                      {format(new Date(interaction.interaction_date), 'PPP')}
                     </span>
                   </div>
-                  <p className="text-sm whitespace-pre-line">{interaction.description}</p>
+                  <p className="mt-1 mb-2">{interaction.description}</p>
+                  <div className="text-sm text-muted-foreground">
+                    By: {interaction.placement_officer_name}
+                  </div>
                 </div>
               </div>
             ))}

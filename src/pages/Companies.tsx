@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
@@ -6,13 +7,14 @@ import { Company, CompanyStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import InteractionsTimeline from '@/components/companies/InteractionsTimeline';
+import { Textarea } from '@/components/ui/textarea';
 
 const Companies = () => {
   const { userData } = useAuth();
@@ -22,10 +24,58 @@ const Companies = () => {
   const [selectedCompany, setSelectedCompany] = useState<Company | null>(null);
   const [selectedCompanyId, setSelectedCompanyId] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [formData, setFormData] = useState<Partial<Company>>({
+    name: '',
+    contact_person: '',
+    contact_email: '',
+    contact_phone: '',
+    collaboration_status: 'active',
+    company_status: 'partner',
+    job_roles_offered: []
+  });
+  const [jobRolesInput, setJobRolesInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   useEffect(() => {
     fetchCompanies();
+    setupRealtimeSubscription();
   }, []);
+
+  const setupRealtimeSubscription = () => {
+    const channel = supabase
+      .channel('companies-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'companies' }, 
+        (payload) => {
+          if (payload.eventType === 'INSERT') {
+            setCompanies(prev => [...prev, payload.new as Company]);
+          } else if (payload.eventType === 'UPDATE') {
+            setCompanies(prev => 
+              prev.map(company => company.id === payload.new.id ? payload.new as Company : company)
+            );
+            // If we're viewing this company's details, update the selected company
+            if (selectedCompanyId === payload.new.id) {
+              setSelectedCompany(payload.new as Company);
+            }
+          } else if (payload.eventType === 'DELETE') {
+            setCompanies(prev => 
+              prev.filter(company => company.id !== payload.old.id)
+            );
+            // If we're viewing the deleted company, go back to list view
+            if (selectedCompanyId === payload.old.id) {
+              setViewMode('list');
+              setSelectedCompany(null);
+              setSelectedCompanyId(null);
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
 
   const fetchCompanies = async () => {
     setIsLoading(true);
@@ -126,18 +176,98 @@ const Companies = () => {
     setViewMode('detail');
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleAdd = () => {
+    setFormData({
+      name: '',
+      contact_person: '',
+      contact_email: '',
+      contact_phone: '',
+      collaboration_status: 'active',
+      company_status: 'partner',
+      job_roles_offered: []
+    });
+    setJobRolesInput('');
     setIsDialogOpen(true);
-    // Reset form state for a new company
   };
 
   const handleEdit = (company: Company) => {
-    // Set form state with company data
-    toast.success('This is a demo. Company editing would be implemented here.');
+    setSelectedCompany(company);
+    setFormData({
+      ...company,
+    });
+    setJobRolesInput(company.job_roles_offered.join(', '));
+    setIsDialogOpen(true);
   };
 
-  const handleDelete = (company: Company) => {
-    toast.success('This is a demo. Company deletion would be implemented here.');
+  const handleDelete = async (company: Company) => {
+    if (window.confirm(`Are you sure you want to delete ${company.name}?`)) {
+      try {
+        const { error } = await supabase
+          .from('companies')
+          .delete()
+          .eq('id', company.id);
+
+        if (error) throw error;
+        
+        toast.success(`${company.name} has been deleted`);
+      } catch (error) {
+        console.error('Error deleting company:', error);
+        toast.error('Failed to delete company');
+      }
+    }
+  };
+
+  const handleSubmitCompany = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    
+    try {
+      // Convert job roles input to array
+      const jobRolesArray = jobRolesInput
+        .split(',')
+        .map(role => role.trim())
+        .filter(role => role !== '');
+      
+      const companyData = {
+        ...formData,
+        job_roles_offered: jobRolesArray
+      };
+      
+      if (selectedCompany) {
+        // Update
+        const { error } = await supabase
+          .from('companies')
+          .update(companyData)
+          .eq('id', selectedCompany.id);
+          
+        if (error) throw error;
+        toast.success('Company updated successfully');
+      } else {
+        // Create
+        const { error } = await supabase
+          .from('companies')
+          .insert([companyData]);
+          
+        if (error) throw error;
+        toast.success('Company added successfully');
+      }
+      
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error('Error saving company:', error);
+      toast.error('Failed to save company');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const handleBackToList = () => {
@@ -276,17 +406,11 @@ const Companies = () => {
                       <h3 className="text-sm font-medium text-muted-foreground">Available Positions</h3>
                       <p className="text-2xl font-bold mt-1">{selectedCompany?.job_roles_offered.length || 0}</p>
                     </div>
-                    {/* This would be fetched from the placements table in a real implementation */}
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Students Placed</h3>
-                      <p className="text-2xl font-bold mt-1">--</p>
-                    </div>
                   </div>
                 </CardContent>
               </Card>
             </div>
 
-            {/* Add the Interactions Timeline component */}
             {selectedCompanyId && (
               <InteractionsTimeline companyId={selectedCompanyId} />
             )}
@@ -294,80 +418,120 @@ const Companies = () => {
         )}
       </div>
 
-      {/* Add Company Dialog */}
+      {/* Add/Edit Company Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>Add New Company</DialogTitle>
+            <DialogTitle>{selectedCompany ? 'Edit Company' : 'Add New Company'}</DialogTitle>
             <DialogDescription>
-              Enter company details to add to the system.
+              {selectedCompany ? 'Update company details.' : 'Enter company details to add to the system.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="name">Company Name</Label>
-                <Input id="name" placeholder="Enter company name" />
+          <form onSubmit={handleSubmitCompany}>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="name">Company Name</Label>
+                  <Input 
+                    id="name" 
+                    name="name"
+                    value={formData.name || ''}
+                    onChange={handleInputChange}
+                    placeholder="Enter company name" 
+                    required
+                  />
+                </div>
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="contact_person">Contact Person</Label>
+                  <Input 
+                    id="contact_person"
+                    name="contact_person"
+                    value={formData.contact_person || ''}
+                    onChange={handleInputChange}
+                    placeholder="Enter contact person" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="contact_email">Contact Email</Label>
+                  <Input 
+                    id="contact_email"
+                    name="contact_email" 
+                    type="email"
+                    value={formData.contact_email || ''}
+                    onChange={handleInputChange}
+                    placeholder="Enter email address" 
+                  />
+                </div>
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="contact_phone">Contact Phone</Label>
+                  <Input 
+                    id="contact_phone"
+                    name="contact_phone"
+                    value={formData.contact_phone || ''}
+                    onChange={handleInputChange} 
+                    placeholder="Enter phone number" 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="collaboration_status">Collaboration Status</Label>
+                  <Select 
+                    value={formData.collaboration_status || 'active'}
+                    onValueChange={(value) => handleSelectChange('collaboration_status', value)}
+                  >
+                    <SelectTrigger id="collaboration_status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                      <SelectItem value="active">Active</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="company_status">Company Status</Label>
+                  <Select 
+                    value={formData.company_status || 'partner'}
+                    onValueChange={(value) => handleSelectChange('company_status', value)}
+                  >
+                    <SelectTrigger id="company_status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                      <SelectItem value="prospect">Prospect</SelectItem>
+                      <SelectItem value="partner">Partner</SelectItem>
+                      <SelectItem value="inactive">Inactive</SelectItem>
+                      <SelectItem value="former_partner">Former Partner</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="contactPerson">Contact Person</Label>
-                <Input id="contactPerson" placeholder="Enter contact person" />
+                <Label htmlFor="job_roles">Job Roles Offered</Label>
+                <Textarea 
+                  id="job_roles"
+                  value={jobRolesInput}
+                  onChange={(e) => setJobRolesInput(e.target.value)}
+                  placeholder="E.g. Developer, Designer (comma separated)"
+                  rows={3}
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Separate each role with a comma
+                </p>
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="email">Contact Email</Label>
-                <Input id="email" placeholder="Enter email address" type="email" />
-              </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="phone">Contact Phone</Label>
-                <Input id="phone" placeholder="Enter phone number" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="collaboration_status">Collaboration Status</Label>
-                <Select>
-                  <SelectTrigger id="collaboration_status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    <SelectItem value="active">Active</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="company_status">Company Status</Label>
-                <Select>
-                  <SelectTrigger id="company_status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    <SelectItem value="prospect">Prospect</SelectItem>
-                    <SelectItem value="partner">Partner</SelectItem>
-                    <SelectItem value="inactive">Inactive</SelectItem>
-                    <SelectItem value="former_partner">Former Partner</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-            <div className="flex flex-col space-y-1.5">
-              <Label htmlFor="roles">Job Roles Offered</Label>
-              <Input id="roles" placeholder="E.g. Developer, Designer (comma separated)" />
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => {
-              toast.success('Company added successfully.');
-              setIsDialogOpen(false);
-            }}>
-              Add Company
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>
+                Cancel
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting ? 'Saving...' : selectedCompany ? 'Update Company' : 'Add Company'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </Layout>
