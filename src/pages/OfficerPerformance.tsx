@@ -23,7 +23,6 @@ const OfficerPerformance = () => {
     loading, 
     companies, 
     officers,
-    placements, 
     selectedMonth, 
     setSelectedMonth, 
     selectedYear, 
@@ -91,7 +90,6 @@ const OfficerPerformance = () => {
             <MonthlyPerformanceChart 
               metrics={metrics} 
               loading={loading}
-              placements={placements}
               selectedMonth={selectedMonth}
               selectedYear={selectedYear}
               selectedOfficer={selectedOfficer}

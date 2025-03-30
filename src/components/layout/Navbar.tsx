@@ -1,140 +1,108 @@
-
 import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { 
-  Home, 
-  Users, 
-  Briefcase, 
-  Building, 
-  School, 
-  LogOut,
-  Menu,
-  X,
-  Award
-} from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
-import { cn } from '@/lib/utils';
-import { useIsMobile } from '@/hooks/use-mobile';
+import { useNavigate } from 'react-router-dom';
+import { useMobile } from '@/hooks/use-mobile';
+import { Button } from '@/components/ui/button';
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
+import { Menu } from 'lucide-react';
+import { NavLink } from 'react-router-dom';
+import ThemeToggle from './ThemeToggle';
 
-const Navbar = () => {
-  const { user, logout, role } = useAuth();
-  const location = useLocation();
-  const isMobile = useIsMobile();
+export const Navbar = () => {
+  const { isAuthenticated, logout, role } = useAuth();
+  const navigate = useNavigate();
+  const isMobile = useMobile();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  if (!user) return null;
+  const handleLogin = () => {
+    navigate('/login');
+  };
 
-  const navItems = [
-    { path: '/dashboard', name: 'Dashboard', icon: Home },
-    { path: '/students', name: 'Students', icon: Users },
-    { path: '/companies', name: 'Companies', icon: Briefcase },
-    { path: '/placements', name: 'Placements', icon: Building },
-  ];
-  
-  // Only show officer performance link to master_admin and project_lead roles
-  if (role === 'master_admin' || role === 'project_lead') {
-    navItems.push({
-      path: '/officer-performance',
-      name: 'Officer Performance',
-      icon: Award,
-    });
-  }
-  
-  if (role === 'master_admin') {
-    navItems.push({ path: '/schools', name: 'Schools', icon: School });
-    navItems.push({ path: '/users', name: 'Users', icon: Users });
-  } else if (role === 'project_lead') {
-    navItems.push({ path: '/users', name: 'Placement Officers', icon: Users });
-  }
+  const handleLogout = () => {
+    logout();
+    navigate('/');
+  };
 
   const toggleMobileMenu = () => {
     setMobileMenuOpen(!mobileMenuOpen);
   };
 
   return (
-    <header className="border-b border-border bg-card shadow-sm">
-      <div className="container px-4 sm:px-6 lg:px-8 mx-auto">
-        <div className="flex h-16 items-center justify-between">
-          <div className="flex items-center">
-            <Link to="/dashboard" className="text-2xl font-semibold text-foreground">
-              PlaceTrack
-            </Link>
+    <div className="border-b">
+      <div className="flex h-16 items-center px-4 container mx-auto">
+        <a href="/" className="flex items-center">
+          <span className="font-bold text-xl">Placement System</span>
+        </a>
+        
+        {!isMobile ? (
+          <div className="ml-8 flex items-center space-x-6">
+            {isAuthenticated && role === 'master_admin' && (
+              <>
+                <NavLink to="/dashboard" className="text-sm font-medium hover:underline">Dashboard</NavLink>
+                <NavLink to="/schools" className="text-sm font-medium hover:underline">Schools</NavLink>
+                <NavLink to="/users" className="text-sm font-medium hover:underline">Users</NavLink>
+              </>
+            )}
+            {isAuthenticated && (role === 'project_lead' || role === 'placement_officer') && (
+              <>
+                <NavLink to="/dashboard" className="text-sm font-medium hover:underline">Dashboard</NavLink>
+                <NavLink to="/students" className="text-sm font-medium hover:underline">Students</NavLink>
+                <NavLink to="/companies" className="text-sm font-medium hover:underline">Companies</NavLink>
+                <NavLink to="/placements" className="text-sm font-medium hover:underline">Placements</NavLink>
+              </>
+            )}
+            {isAuthenticated && (role === 'master_admin' || role === 'project_lead') && (
+              <NavLink to="/officer-performance" className="text-sm font-medium hover:underline">Officer Performance</NavLink>
+            )}
           </div>
-
-          {isMobile ? (
-            <>
-              <Button variant="ghost" onClick={toggleMobileMenu} className="p-2">
-                {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
+        ) : (
+          <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+            <SheetTrigger asChild>
+              <Button variant="ghost" size="sm" className="ml-auto" onClick={toggleMobileMenu}>
+                <Menu className="h-5 w-5" />
               </Button>
-              {mobileMenuOpen && (
-                <div className="absolute top-16 left-0 right-0 z-50 bg-card shadow-lg border-b border-border animate-fade-in">
-                  <nav className="flex flex-col py-4">
-                    {navItems.map((item) => (
-                      <Link
-                        key={item.path}
-                        to={item.path}
-                        className={cn(
-                          "flex items-center px-6 py-3 text-base hover-transition",
-                          location.pathname === item.path
-                            ? "text-primary font-medium"
-                            : "text-muted-foreground hover:text-primary"
-                        )}
-                        onClick={() => setMobileMenuOpen(false)}
-                      >
-                        <item.icon className="mr-3 h-5 w-5" />
-                        {item.name}
-                      </Link>
-                    ))}
-                    <button
-                      onClick={() => {
-                        logout();
-                        setMobileMenuOpen(false);
-                      }}
-                      className="flex items-center px-6 py-3 text-base text-muted-foreground hover:text-primary hover-transition"
-                    >
-                      <LogOut className="mr-3 h-5 w-5" />
-                      Logout
-                    </button>
-                  </nav>
-                </div>
-              )}
-            </>
-          ) : (
-            <>
-              <nav className="hidden md:flex items-center space-x-6">
-                {navItems.map((item) => (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    className={cn(
-                      "flex items-center text-sm hover-transition",
-                      location.pathname === item.path
-                        ? "text-primary font-medium"
-                        : "text-muted-foreground hover:text-primary"
-                    )}
-                  >
-                    <item.icon className="mr-2 h-4 w-4" />
-                    {item.name}
-                  </Link>
-                ))}
-              </nav>
-
-              <div className="flex items-center space-x-2">
-                <span className="text-sm text-muted-foreground">
-                  {user?.name} ({role})
-                </span>
-                <Button variant="ghost" size="sm" onClick={logout} className="hover-transition">
-                  <LogOut className="h-4 w-4 mr-1" />
-                  Logout
-                </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="w-full sm:w-64">
+              <SheetHeader className="text-left">
+                <SheetTitle>Menu</SheetTitle>
+                <SheetDescription>
+                  Navigate through the placement system.
+                </SheetDescription>
+              </SheetHeader>
+              <div className="mt-4 flex flex-col space-y-2">
+                {isAuthenticated && role === 'master_admin' && (
+                  <>
+                    <NavLink to="/dashboard" className="text-sm font-medium hover:underline block" onClick={() => setMobileMenuOpen(false)}>Dashboard</NavLink>
+                    <NavLink to="/schools" className="text-sm font-medium hover:underline block" onClick={() => setMobileMenuOpen(false)}>Schools</NavLink>
+                    <NavLink to="/users" className="text-sm font-medium hover:underline block" onClick={() => setMobileMenuOpen(false)}>Users</NavLink>
+                  </>
+                )}
+                {isAuthenticated && (role === 'project_lead' || role === 'placement_officer') && (
+                  <>
+                    <NavLink to="/dashboard" className="text-sm font-medium hover:underline block" onClick={() => setMobileMenuOpen(false)}>Dashboard</NavLink>
+                    <NavLink to="/students" className="text-sm font-medium hover:underline block" onClick={() => setMobileMenuOpen(false)}>Students</NavLink>
+                    <NavLink to="/companies" className="text-sm font-medium hover:underline block" onClick={() => setMobileMenuOpen(false)}>Companies</NavLink>
+                    <NavLink to="/placements" className="text-sm font-medium hover:underline block" onClick={() => setMobileMenuOpen(false)}>Placements</NavLink>
+                  </>
+                )}
+                 {isAuthenticated && (role === 'master_admin' || role === 'project_lead') && (
+                  <NavLink to="/officer-performance" className="text-sm font-medium hover:underline block" onClick={() => setMobileMenuOpen(false)}>Officer Performance</NavLink>
+                )}
               </div>
-            </>
+            </SheetContent>
+          </Sheet>
+        )}
+        
+        <div className="ml-auto flex items-center space-x-4">
+          <ThemeToggle />
+          
+          {isAuthenticated ? (
+            <Button variant="outline" size="sm" onClick={handleLogout}>Logout</Button>
+          ) : (
+            <Button variant="outline" size="sm" onClick={handleLogin}>Login</Button>
           )}
         </div>
       </div>
-    </header>
+    </div>
   );
 };
-
-export default Navbar;

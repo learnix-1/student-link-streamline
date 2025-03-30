@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
@@ -23,7 +24,7 @@ const Students = () => {
       // Make sure to set default values for any missing student_status fields
       const updatedStudents = userData.students.map((student: any) => ({
         ...student,
-        student_status: student.student_status || 'studying',
+        student_status: student.student_status || 'ongoing_course',
         course_specialization: student.course_specialization || ''
       })) as Student[];
       
@@ -74,6 +75,28 @@ const Students = () => {
     toast.success('This is a demo. Student deletion would be implemented here.');
   };
 
+  const getStatusDisplay = (status: StudentStatus) => {
+    switch (status) {
+      case 'ongoing_course': return 'Ongoing Course';
+      case 'ongoing_placed': return 'Ongoing and Placed';
+      case 'finished_not_placed': return 'Finished and Not Placed';
+      case 'finished_placed': return 'Finished and Placed';
+      case 'placement_not_needed': return 'Placement Not Needed';
+      default: return status;
+    }
+  };
+
+  const getStatusColor = (status: StudentStatus) => {
+    switch (status) {
+      case 'ongoing_course': return 'bg-blue-500';
+      case 'ongoing_placed': return 'bg-green-500';
+      case 'finished_not_placed': return 'bg-amber-500';
+      case 'finished_placed': return 'bg-green-500';
+      case 'placement_not_needed': return 'bg-gray-500';
+      default: return 'bg-gray-500';
+    }
+  };
+
   const studentColumns = [
     { header: 'Name', accessor: 'name' as keyof Student },
     { header: 'Email', accessor: 'email' as keyof Student },
@@ -86,15 +109,9 @@ const Students = () => {
       cell: (row: Student) => (
         <div className="flex items-center">
           <span 
-            className={`inline-block w-2 h-2 rounded-full mr-2 ${
-              row.student_status === 'studying' ? 'bg-blue-500' : 
-              row.student_status === 'completed' ? 'bg-green-500' : 
-              row.student_status === 'seeking_placement' ? 'bg-amber-500' : 'bg-gray-500'
-            }`}
+            className={`inline-block w-2 h-2 rounded-full mr-2 ${getStatusColor(row.student_status)}`}
           />
-          {row.student_status === 'studying' ? 'Studying' : 
-           row.student_status === 'completed' ? 'Completed' :
-           row.student_status === 'seeking_placement' ? 'Seeking Placement' : 'Not Seeking'}
+          {getStatusDisplay(row.student_status)}
         </div>
       )
     },
@@ -195,7 +212,7 @@ const Students = () => {
             <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="course_specialization">Course Specialization</Label>
                 <Input id="course_specialization" placeholder="Enter course specialization" />
-              </div>
+            </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="school">School</Label>
@@ -214,15 +231,16 @@ const Students = () => {
               </div>
               <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="status">Status</Label>
-                <Select defaultValue="studying">
+                <Select defaultValue="ongoing_course">
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Select status" />
                   </SelectTrigger>
                   <SelectContent position="popper">
-                    <SelectItem value="studying">Studying</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                    <SelectItem value="seeking_placement">Seeking Placement</SelectItem>
-                    <SelectItem value="not_seeking_placement">Not Seeking Placement</SelectItem>
+                    <SelectItem value="ongoing_course">Ongoing Course</SelectItem>
+                    <SelectItem value="ongoing_placed">Ongoing and Placed</SelectItem>
+                    <SelectItem value="finished_not_placed">Finished and Not Placed</SelectItem>
+                    <SelectItem value="finished_placed">Finished and Placed</SelectItem>
+                    <SelectItem value="placement_not_needed">Placement Not Needed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

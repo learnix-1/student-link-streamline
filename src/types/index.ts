@@ -1,11 +1,16 @@
-
 export type UserRole = 'master_admin' | 'project_lead' | 'placement_officer' | string;
 
 export type PlacementStatus = 'not_placed' | 'placed' | string;
 export type CollaborationStatus = 'active' | 'inactive' | string;
 export type PlacementProgressStatus = 'in_progress' | 'completed' | string;
 export type CompanyStatus = 'prospect' | 'partner' | 'inactive' | 'former_partner' | string;
-export type StudentStatus = 'studying' | 'completed' | 'seeking_placement' | 'not_seeking_placement' | string;
+export type StudentStatus = 
+  | 'ongoing_course' 
+  | 'ongoing_placed' 
+  | 'finished_not_placed' 
+  | 'finished_placed' 
+  | 'placement_not_needed' 
+  | string;
 
 export interface User {
   id: string;
@@ -23,11 +28,11 @@ export interface Student {
   email: string;
   phone: string;
   course: string;
-  course_specialization?: string; // New field for student specialization
+  course_specialization?: string;
   school_id: string;
   school_name?: string;
   placement_status: PlacementStatus;
-  student_status: StudentStatus; // New field for student course completion status
+  student_status: StudentStatus; // Updated to use the new student status options
   interviews_attended: number;
   interview_results?: string;
   created_at: string;
@@ -40,7 +45,7 @@ export interface Company {
   contact_email: string;
   contact_phone: string;
   collaboration_status: CollaborationStatus;
-  company_status: CompanyStatus; // New field for company status
+  company_status: CompanyStatus;
   job_roles_offered: string[];
   created_at: string;
 }
@@ -80,8 +85,8 @@ export interface OfficerMetrics {
   completedPlacements: number;
   inProgressPlacements: number;
   companiesCollaborated: number;
-  averagePlacementTime: number; // in days
-  placementSuccessRate: number; // percentage
+  averagePlacementTime: number;
+  placementSuccessRate: number;
   lastPlacementDate: string;
 }
 

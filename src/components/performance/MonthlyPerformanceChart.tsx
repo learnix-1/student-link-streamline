@@ -11,8 +11,9 @@ import {
   Legend, 
   ResponsiveContainer 
 } from 'recharts';
-import { OfficerMetrics, Placement } from '@/types';
+import { OfficerMetrics } from '@/types';
 import { ChartContainer, ChartTooltipContent } from '@/components/ui/chart';
+import { useOfficerMetrics } from '@/hooks/use-officer-metrics';
 
 interface MonthlyData {
   month: string;
@@ -24,7 +25,6 @@ interface MonthlyData {
 interface MonthlyPerformanceChartProps {
   metrics: OfficerMetrics[];
   loading: boolean;
-  placements: Placement[];
   selectedMonth: number | null;
   selectedYear: number;
   selectedOfficer: string | null;
@@ -33,11 +33,12 @@ interface MonthlyPerformanceChartProps {
 const MonthlyPerformanceChart: React.FC<MonthlyPerformanceChartProps> = ({ 
   metrics, 
   loading, 
-  placements,
   selectedMonth,
   selectedYear,
   selectedOfficer
 }) => {
+  const { placements } = useOfficerMetrics();
+  
   // Generate monthly data from real placements
   const generateMonthlyData = (): MonthlyData[] => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
