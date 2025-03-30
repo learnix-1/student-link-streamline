@@ -1,42 +1,127 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { DataTable } from '@/components/ui/DataTable';
 import { School, User } from '@/types';
 import { Button } from '@/components/ui/button';
-import { Plus, Edit, Trash } from 'lucide-react';
+import { Plus, Edit, Trash, ArrowRight } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Link, useNavigate } from 'react-router-dom';
 
 const Schools = () => {
-  const { userData, role } = useAuth();
+  const { userData } = useAuth();
+  const navigate = useNavigate();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [newSchool, setNewSchool] = useState({
-    name: '',
-    location: '',
-    project_lead_id: ''
-  });
-  
-  if (!userData || role !== 'master_admin') return null;
-  
-  const { schools, users } = userData;
-  const projectLeads = users.filter((user: User) => user.role === 'project_lead');
+  const [schools, setSchools] = useState<School[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
+
+  useEffect(() => {
+    if (userData) {
+      setSchools(userData.schools);
+    }
+  }, [userData]);
+
+  useEffect(() => {
+    const setupRealtimeSchools = async () => {
+      const channel = supabase
+        .channel('schools-changes')
+        .on('postgres_changes', 
+          { event: '*', schema: 'public', table: 'schools' }, 
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              setSchools(prevSchools => [...prevSchools, payload.new as School]);
+            } else if (payload.eventType === 'UPDATE') {
+              setSchools(prevSchools => 
+                prevSchools.map(school => school.id === payload.new.id ? payload.new as School : school)
+              );
+            } else if (payload.eventType === 'DELETE') {
+              setSchools(prevSchools => 
+                prevSchools.filter(school => school.id !== payload.old.id)
+              );
+            }
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    };
+
+    setupRealtimeSchools();
+  }, []);
+
+  const handleAdd = () => {
+    navigate('/schools/add');
+  };
+
+  const handleEdit = (school: School) => {
+    setSelectedSchool(school);
+    setIsDialogOpen(true);
+  };
+
+  const handleDelete = async (school: School) => {
+    if (window.confirm(`Are you sure you want to delete ${school.name}?`)) {
+      try {
+        const { error } = await supabase
+          .from('schools')
+          .delete()
+          .eq('id', school.id);
+
+        if (error) throw error;
+        
+        toast.success(`${school.name} has been deleted`);
+      } catch (error) {
+        console.error('Error deleting school:', error);
+        toast.error('Failed to delete school');
+      }
+    }
+  };
+
+  const handleUpdateSchool = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedSchool) return;
+
+    try {
+      const { error } = await supabase
+        .from('schools')
+        .update({
+          name: selectedSchool.name,
+          location: selectedSchool.location,
+          project_lead_id: selectedSchool.project_lead_id
+        })
+        .eq('id', selectedSchool.id);
+
+      if (error) throw error;
+      
+      toast.success(`${selectedSchool.name} updated successfully`);
+      setIsDialogOpen(false);
+    } catch (error) {
+      console.error('Error updating school:', error);
+      toast.error('Failed to update school');
+    }
+  };
+
+  const getProjectLeadName = (leadId: string) => {
+    if (!userData || !leadId) return 'Not Assigned';
+    
+    const lead = userData.users.find((user: User) => user.id === leadId);
+    return lead ? lead.name : 'Not Assigned';
+  };
 
   const schoolColumns = [
     { header: 'Name', accessor: 'name' as keyof School },
     { header: 'Location', accessor: 'location' as keyof School },
     { 
       header: 'Project Lead', 
-      accessor: (row: School) => {
-        if (!row.project_lead_id) return 'Not Assigned';
-        const lead = projectLeads.find((u: User) => u.id === row.project_lead_id);
-        return lead ? lead.name : 'Unknown';
-      } 
+      accessor: (row: School) => getProjectLeadName(row.project_lead_id || '') 
     },
     { 
       header: 'Actions', 
@@ -53,52 +138,7 @@ const Schools = () => {
     },
   ];
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setNewSchool(prev => ({
-      ...prev,
-      [id]: value
-    }));
-  };
-
-  const handleSelectChange = (value: string) => {
-    setNewSchool(prev => ({
-      ...prev,
-      project_lead_id: value
-    }));
-  };
-
-  const resetForm = () => {
-    setNewSchool({
-      name: '',
-      location: '',
-      project_lead_id: ''
-    });
-  };
-
-  const handleAdd = () => {
-    setIsDialogOpen(true);
-    resetForm();
-  };
-
-  const handleEdit = (school: School) => {
-    toast.success('This is a demo. School editing would be implemented here.');
-  };
-
-  const handleDelete = (school: School) => {
-    toast.success('This is a demo. School deletion would be implemented here.');
-  };
-
-  const handleSubmit = () => {
-    if (!newSchool.name || !newSchool.location) {
-      toast.error('School name and location are required');
-      return;
-    }
-
-    toast.success('School added successfully.');
-    setIsDialogOpen(false);
-    resetForm();
-  };
+  if (!userData) return null;
 
   return (
     <Layout>
@@ -107,19 +147,21 @@ const Schools = () => {
           <div>
             <h1 className="text-3xl font-bold tracking-tight">Schools</h1>
             <p className="text-muted-foreground mt-1">
-              Manage educational institutions in the system
+              Manage educational institutions that are part of the placement program
             </p>
           </div>
-          <Button onClick={handleAdd} className="hover-transition">
-            <Plus className="mr-2 h-4 w-4" />
-            Add School
-          </Button>
+          <div className="flex items-center gap-4">
+            <Button onClick={handleAdd} className="hover-transition">
+              <Plus className="mr-2 h-4 w-4" />
+              Add School
+            </Button>
+          </div>
         </div>
 
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg font-medium">School Records</CardTitle>
-            <CardDescription>Complete list of schools in the placement system</CardDescription>
+            <CardDescription>List of all schools and their details</CardDescription>
           </CardHeader>
           <CardContent>
             <DataTable 
@@ -131,65 +173,64 @@ const Schools = () => {
         </Card>
       </div>
 
-      {/* Add School Dialog */}
+      {/* Edit School Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>Add New School</DialogTitle>
+            <DialogTitle>Edit School</DialogTitle>
             <DialogDescription>
-              Enter school details to add to the system.
+              Update school details.
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="name">School Name</Label>
-                <Input 
-                  id="name" 
-                  placeholder="Enter school name" 
-                  value={newSchool.name}
-                  onChange={handleInputChange}
-                />
+          {selectedSchool && (
+            <form onSubmit={handleUpdateSchool}>
+              <div className="grid gap-4 py-4">
+                <div className="space-y-2">
+                  <Label htmlFor="name">School Name</Label>
+                  <Input 
+                    id="name" 
+                    value={selectedSchool.name} 
+                    onChange={(e) => setSelectedSchool({...selectedSchool, name: e.target.value})}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="location">Location</Label>
+                  <Input 
+                    id="location" 
+                    value={selectedSchool.location || ''} 
+                    onChange={(e) => setSelectedSchool({...selectedSchool, location: e.target.value})}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="project_lead">Project Lead</Label>
+                  <Select 
+                    value={selectedSchool.project_lead_id || ''} 
+                    onValueChange={(value) => setSelectedSchool({...selectedSchool, project_lead_id: value})}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select a project lead" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="">None</SelectItem>
+                      {userData.users
+                        .filter((user: User) => user.role === 'project_lead')
+                        .map((lead: User) => (
+                          <SelectItem key={lead.id} value={lead.id}>
+                            {lead.name}
+                          </SelectItem>
+                        ))
+                      }
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="location">Location</Label>
-                <Input 
-                  id="location" 
-                  placeholder="Enter school location" 
-                  value={newSchool.location}
-                  onChange={handleInputChange}
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-1 gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="project_lead_id">Project Lead</Label>
-                <Select value={newSchool.project_lead_id} onValueChange={handleSelectChange}>
-                  <SelectTrigger id="project_lead_id">
-                    <SelectValue placeholder="Select project lead" />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    <SelectItem value="">None</SelectItem>
-                    {projectLeads.map((lead: User) => (
-                      <SelectItem key={lead.id} value={lead.id}>
-                        {lead.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={handleSubmit}>
-              Add School
-            </Button>
-          </DialogFooter>
+              <DialogFooter>
+                <Button variant="outline" type="button" onClick={() => setIsDialogOpen(false)}>Cancel</Button>
+                <Button type="submit">Update School</Button>
+              </DialogFooter>
+            </form>
+          )}
         </DialogContent>
       </Dialog>
     </Layout>

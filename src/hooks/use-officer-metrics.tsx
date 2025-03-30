@@ -220,6 +220,9 @@ export const useOfficerMetrics = () => {
     }
   };
 
+  // Add a method to get placements for use in components
+  const getPlacements = () => placements;
+
   return { 
     metrics, 
     loading, 
@@ -230,6 +233,7 @@ export const useOfficerMetrics = () => {
     selectedYear, 
     setSelectedYear,
     selectedOfficer, 
-    setSelectedOfficer
+    setSelectedOfficer,
+    getPlacements
   };
 };

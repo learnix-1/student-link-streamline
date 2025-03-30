@@ -14,6 +14,7 @@ import Students from "./pages/Students";
 import Companies from "./pages/Companies";
 import Placements from "./pages/Placements";
 import Schools from "./pages/Schools";
+import SchoolsAdd from "./pages/SchoolsAdd";
 import Users from "./pages/Users";
 import NotFound from "./pages/NotFound";
 import OfficerPerformance from './pages/OfficerPerformance';
@@ -53,6 +54,7 @@ const AppRoutes = () => {
       <Route path="/companies" element={<Companies />} />
       <Route path="/placements" element={<Placements />} />
       <Route path="/schools" element={<Schools />} />
+      <Route path="/schools/add" element={<SchoolsAdd />} />
       <Route path="/users" element={<Users />} />
       <Route 
         path="/officer-performance" 

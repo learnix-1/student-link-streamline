@@ -37,11 +37,12 @@ const MonthlyPerformanceChart: React.FC<MonthlyPerformanceChartProps> = ({
   selectedYear,
   selectedOfficer
 }) => {
-  const { placements } = useOfficerMetrics();
+  const { getPlacements, officers } = useOfficerMetrics();
   
   // Generate monthly data from real placements
   const generateMonthlyData = (): MonthlyData[] => {
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const placements = getPlacements();
     
     // Filter by year
     const yearPlacements = placements.filter(p => {
@@ -108,8 +109,8 @@ const MonthlyPerformanceChart: React.FC<MonthlyPerformanceChartProps> = ({
           {selectedMonth !== null 
             ? `Performance for ${new Date(selectedYear, selectedMonth).toLocaleString('default', { month: 'long' })} ${selectedYear}`
             : `Monthly Performance for ${selectedYear}`}
-          {selectedOfficer && metrics.find(m => m.id === selectedOfficer)
-            ? ` - ${metrics.find(m => m.id === selectedOfficer)?.name}`
+          {selectedOfficer && officers.find(m => m.id === selectedOfficer)
+            ? ` - ${officers.find(m => m.id === selectedOfficer)?.name}`
             : ''}
         </CardTitle>
         <CardDescription>
