@@ -13,11 +13,24 @@ import TopOfficersTable from '@/components/performance/TopOfficersTable';
 import MetricsTable from '@/components/performance/MetricsTable';
 import PerformanceScoreTable from '@/components/performance/PerformanceScoreTable';
 import MonthlyPerformanceChart from '@/components/performance/MonthlyPerformanceChart';
+import FilterControls from '@/components/performance/FilterControls';
 
 const OfficerPerformance = () => {
   const { role } = useAuth();
   const navigate = useNavigate();
-  const { metrics, loading, companies } = useOfficerMetrics();
+  const { 
+    metrics, 
+    loading, 
+    companies, 
+    officers,
+    placements, 
+    selectedMonth, 
+    setSelectedMonth, 
+    selectedYear, 
+    setSelectedYear,
+    selectedOfficer,
+    setSelectedOfficer,
+  } = useOfficerMetrics();
 
   // Restrict access to admin roles only
   useEffect(() => {
@@ -41,6 +54,17 @@ const OfficerPerformance = () => {
             Analyze and monitor placement officer performance metrics
           </p>
         </div>
+        
+        <FilterControls
+          selectedMonth={selectedMonth}
+          setSelectedMonth={setSelectedMonth}
+          selectedYear={selectedYear}
+          setSelectedYear={setSelectedYear}
+          selectedOfficer={selectedOfficer}
+          setSelectedOfficer={setSelectedOfficer}
+          officers={officers}
+          loading={loading}
+        />
 
         <Tabs defaultValue="overview" className="space-y-6">
           <TabsList>
@@ -66,7 +90,11 @@ const OfficerPerformance = () => {
           <TabsContent value="monthly" className="space-y-6">
             <MonthlyPerformanceChart 
               metrics={metrics} 
-              loading={loading} 
+              loading={loading}
+              placements={placements}
+              selectedMonth={selectedMonth}
+              selectedYear={selectedYear}
+              selectedOfficer={selectedOfficer}
             />
           </TabsContent>
           

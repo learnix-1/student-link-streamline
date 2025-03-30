@@ -10,6 +10,9 @@ export const useOfficerMetrics = () => {
   const [placements, setPlacements] = useState<Placement[]>([]);
   const [companies, setCompanies] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [selectedMonth, setSelectedMonth] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedOfficer, setSelectedOfficer] = useState<string | null>(null);
 
   // Fetch initial data
   useEffect(() => {
@@ -42,7 +45,7 @@ export const useOfficerMetrics = () => {
         setPlacements(placementsData || []);
         setCompanies(companiesData || []);
         
-        // Calculate metrics
+        // Calculate metrics with any active filters
         calculateMetrics(placementsData || [], officersData || []);
       } catch (error) {
         console.error('Error fetching data:', error);
@@ -54,6 +57,11 @@ export const useOfficerMetrics = () => {
     
     fetchData();
   }, []);
+
+  useEffect(() => {
+    // Recalculate metrics when filters change
+    calculateMetrics(placements, officers);
+  }, [selectedMonth, selectedYear, selectedOfficer, placements, officers]);
 
   // Set up real-time subscriptions
   useEffect(() => {
@@ -134,12 +142,35 @@ export const useOfficerMetrics = () => {
 
   const calculateMetrics = (placements: Placement[], officers: PlacementOfficer[]) => {
     try {
+      // Filter placements by month and year if selected
+      let filteredPlacements = [...placements];
+      
+      if (selectedMonth !== null && selectedYear) {
+        filteredPlacements = filteredPlacements.filter(p => {
+          const placementDate = new Date(p.placement_date);
+          return placementDate.getMonth() === selectedMonth && 
+                 placementDate.getFullYear() === selectedYear;
+        });
+      } else if (selectedYear) {
+        filteredPlacements = filteredPlacements.filter(p => {
+          const placementDate = new Date(p.placement_date);
+          return placementDate.getFullYear() === selectedYear;
+        });
+      }
+      
+      // Filter by selected officer if any
+      if (selectedOfficer) {
+        filteredPlacements = filteredPlacements.filter(p => 
+          p.placement_officer_id === selectedOfficer
+        );
+      }
+
       // Group placements by officer
       const officerPlacements = new Map<string, Placement[]>();
       officers.forEach(officer => {
         officerPlacements.set(
           officer.id, 
-          placements.filter(p => p.placement_officer_id === officer.id)
+          filteredPlacements.filter(p => p.placement_officer_id === officer.id)
         );
       });
 
@@ -189,5 +220,16 @@ export const useOfficerMetrics = () => {
     }
   };
 
-  return { metrics, loading, companies };
+  return { 
+    metrics, 
+    loading, 
+    companies, 
+    officers,
+    selectedMonth, 
+    setSelectedMonth,
+    selectedYear, 
+    setSelectedYear,
+    selectedOfficer, 
+    setSelectedOfficer
+  };
 };
