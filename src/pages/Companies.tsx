@@ -1,9 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { DataTable } from '@/components/ui/DataTable';
-import { Company, CompanyStatus } from '@/types';
+import { Company, CompanyStatus, CollaborationStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash, Info } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import InteractionsTimeline from '@/components/companies/InteractionsTimeline';
+import AddInteractionDialog from '@/components/companies/AddInteractionDialog';
 import { Textarea } from '@/components/ui/textarea';
 
 const Companies = () => {
@@ -237,9 +237,17 @@ const Companies = () => {
         .map(role => role.trim())
         .filter(role => role !== '');
       
+      // Make sure name is provided
+      if (!formData.name) {
+        toast.error('Company name is required');
+        setIsSubmitting(false);
+        return;
+      }
+      
       const companyData = {
         ...formData,
-        job_roles_offered: jobRolesArray
+        job_roles_offered: jobRolesArray,
+        name: formData.name // Ensure name is explicitly set
       };
       
       if (selectedCompany) {
@@ -327,10 +335,13 @@ const Companies = () => {
                   View and manage company details and interactions
                 </p>
               </div>
-              <Button onClick={() => handleEdit(selectedCompany!)} className="hover-transition">
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Company
-              </Button>
+              <div className="flex space-x-2">
+                <AddInteractionDialog companyId={selectedCompanyId || ''} />
+                <Button onClick={() => handleEdit(selectedCompany!)} className="hover-transition">
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Company
+                </Button>
+              </div>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -392,28 +403,10 @@ const Companies = () => {
                 </CardContent>
               </Card>
 
-              <Card className="md:col-span-1">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-lg font-medium">Company Statistics</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Relationship Status</h3>
-                      <p className="text-2xl font-bold mt-1">{selectedCompany?.collaboration_status === 'active' ? 'Active Partner' : 'Inactive'}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-sm font-medium text-muted-foreground">Available Positions</h3>
-                      <p className="text-2xl font-bold mt-1">{selectedCompany?.job_roles_offered.length || 0}</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              {selectedCompanyId && (
+                <InteractionsTimeline companyId={selectedCompanyId} />
+              )}
             </div>
-
-            {selectedCompanyId && (
-              <InteractionsTimeline companyId={selectedCompanyId} />
-            )}
           </>
         )}
       </div>
