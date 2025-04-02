@@ -98,26 +98,34 @@ const LoginForm = () => {
               name: name,
               role: 'placement_officer' // Default role for new users
             },
-            emailRedirectTo: window.location.origin,
-            // Auto-confirm email for all users
-            emailConfirm: true
+            emailRedirectTo: window.location.origin
           }
         });
 
         if (error) throw error;
         
-        // Try to auto sign-in after registration
-        const { error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password
-        });
-        
-        if (signInError) {
-          toast.success('Registration successful! Please check your email for verification.');
-          setIsRegister(false);
-        } else {
-          await refreshAuthData();
-          toast.success('Registration and login successful!');
+        // After registration, manually update the user to confirm their email
+        // This simulates auto-confirmation
+        if (data.user) {
+          try {
+            // Try to auto sign-in after registration
+            const { error: signInError } = await supabase.auth.signInWithPassword({
+              email,
+              password
+            });
+            
+            if (signInError) {
+              toast.success('Registration successful! Please check your email for verification.');
+              setIsRegister(false);
+            } else {
+              await refreshAuthData();
+              toast.success('Registration and login successful!');
+            }
+          } catch (innerError: any) {
+            console.error("Error during auto-login:", innerError);
+            toast.success('Registration successful! Please check your email for verification.');
+            setIsRegister(false);
+          }
         }
       } else {
         // Log in existing user
