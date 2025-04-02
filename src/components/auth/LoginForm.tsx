@@ -20,8 +20,8 @@ const LoginForm = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Special case for admin@haca.com
-    if (email === 'admin@haca.com' && password === 'Password') {
+    // Special case for haca.admin@gmail.com
+    if (email === 'haca.admin@gmail.com' && password === 'Password') {
       try {
         // First try to sign in
         const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
@@ -72,6 +72,7 @@ const LoginForm = () => {
           if (postSignUpError) throw postSignUpError;
           
           await refreshAuthData();
+          toast.success('Admin logged in successfully');
         } else if (signInError) {
           throw signInError;
         } else {
@@ -104,8 +105,7 @@ const LoginForm = () => {
 
         if (error) throw error;
         
-        // After registration, manually update the user to confirm their email
-        // This simulates auto-confirmation
+        // After registration, try to auto-confirm and login
         if (data.user) {
           try {
             // Try to auto sign-in after registration

@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types';
@@ -58,8 +57,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(currentUser);
       setIsAuthenticated(true);
       
-      // Special case for admin@haca.com - set as master_admin role
-      if (currentUser?.email === 'admin@haca.com') {
+      // Special case for haca.admin@gmail.com - set as master_admin role
+      if (currentUser?.email === 'haca.admin@gmail.com') {
         const adminRole = 'master_admin';
         setRole(adminRole);
         
@@ -90,27 +89,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
         });
         setUserData(data);
       }
-      
-      // In a real application, you would fetch user-specific data here
-      // For example:
-      /*
-      const { data: schools, error: schoolsError } = await supabase
-        .from('schools')
-        .select('*');
-        
-      const { data: students, error: studentsError } = await supabase
-        .from('students')
-        .select('*');
-        
-      // ... fetch other data
-      
-      setUserData({
-        schools,
-        students,
-        // ... other data
-      });
-      */
-      
     } catch (error) {
       console.error('Error refreshing auth data:', error);
       toast.error('Failed to load user data');
