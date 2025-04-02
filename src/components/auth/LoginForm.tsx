@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -37,13 +38,39 @@ const LoginForm = () => {
               data: {
                 name: 'Admin',
                 role: 'master_admin'
-              }
+              },
+              emailRedirectTo: window.location.origin
             }
           });
 
           if (signUpError) throw signUpError;
           
-          toast.success('Admin account created successfully. Please check your email for verification if required.');
+          // Auto-confirm admin user
+          try {
+            const { error: adminConfirmError } = await supabase.auth.admin.updateUserById(
+              signUpData?.user?.id as string,
+              { email_confirm: true }
+            );
+            
+            if (adminConfirmError) {
+              console.error("Error confirming admin:", adminConfirmError);
+              // Still proceed with login attempt as this may be a permissions issue
+            }
+          } catch (confirmError) {
+            console.error("Admin confirmation error:", confirmError);
+            // Continue with sign-in attempt
+          }
+          
+          toast.success('Admin account created successfully');
+          
+          // Try to sign in after creating account
+          const { error: postSignUpError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+          
+          if (postSignUpError) throw postSignUpError;
+          
           await refreshAuthData();
         } else if (signInError) {
           throw signInError;
@@ -70,14 +97,28 @@ const LoginForm = () => {
             data: {
               name: name,
               role: 'placement_officer' // Default role for new users
-            }
+            },
+            emailRedirectTo: window.location.origin,
+            // Auto-confirm email for all users
+            emailConfirm: true
           }
         });
 
         if (error) throw error;
         
-        toast.success('Registration successful! Please check your email for verification.');
-        setIsRegister(false);
+        // Try to auto sign-in after registration
+        const { error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+        
+        if (signInError) {
+          toast.success('Registration successful! Please check your email for verification.');
+          setIsRegister(false);
+        } else {
+          await refreshAuthData();
+          toast.success('Registration and login successful!');
+        }
       } else {
         // Log in existing user
         const { data, error } = await supabase.auth.signInWithPassword({
