@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
@@ -320,13 +321,14 @@ const Users = () => {
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="school">School</Label>
               <Select 
-                value={newUser.school_id || ''} 
-                onValueChange={(value) => handleSelectChange('school_id', value)}
+                value={newUser.school_id || 'none'} 
+                onValueChange={(value) => handleSelectChange('school_id', value === 'none' ? '' : value)}
               >
                 <SelectTrigger id="school">
                   <SelectValue placeholder="Select school" />
                 </SelectTrigger>
                 <SelectContent position="popper">
+                  <SelectItem value="none">No School (All Access)</SelectItem>
                   {schools.map((school: School) => (
                     <SelectItem key={school.id} value={school.id}>
                       {school.name}

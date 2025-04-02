@@ -205,14 +205,14 @@ const Schools = () => {
                 <div className="space-y-2">
                   <Label htmlFor="project_lead">Project Lead</Label>
                   <Select 
-                    value={selectedSchool.project_lead_id || ''} 
+                    value={selectedSchool.project_lead_id || ''}
                     onValueChange={(value) => setSelectedSchool({...selectedSchool, project_lead_id: value})}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select a project lead" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {userData.users
                         .filter((user: User) => user.role === 'project_lead')
                         .map((lead: User) => (

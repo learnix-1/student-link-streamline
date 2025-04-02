@@ -144,7 +144,7 @@ const SchoolsAdd = () => {
                       <SelectValue placeholder="Select a project lead" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">None</SelectItem>
+                      <SelectItem value="none">None</SelectItem>
                       {projectLeads.map((lead: User) => (
                         <SelectItem key={lead.id} value={lead.id}>
                           {lead.name}

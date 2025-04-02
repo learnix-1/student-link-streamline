@@ -167,7 +167,7 @@ const Placements = () => {
             </div>
             <div className="flex flex-col space-y-1.5">
               <Label htmlFor="status">Status</Label>
-              <Select>
+              <Select defaultValue="in_progress">
                 <SelectTrigger id="status">
                   <SelectValue placeholder="Select status" />
                 </SelectTrigger>
