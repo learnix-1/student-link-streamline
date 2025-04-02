@@ -18,6 +18,18 @@ const Students = () => {
   const { userData } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [students, setStudents] = useState<Student[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingStudent, setEditingStudent] = useState<Student | null>(null);
+  const [formData, setFormData] = useState<Partial<Student>>({
+    name: '',
+    email: '',
+    phone: '',
+    course: '',
+    course_specialization: '',
+    school_id: '',
+    student_status: 'ongoing_course',
+    placement_status: 'not_placed'
+  });
   
   useEffect(() => {
     if (userData) {
@@ -62,17 +74,126 @@ const Students = () => {
     setupRealtimeStudents();
   }, []);
 
+  const resetForm = () => {
+    setFormData({
+      name: '',
+      email: '',
+      phone: '',
+      course: '',
+      course_specialization: '',
+      school_id: '',
+      student_status: 'ongoing_course',
+      placement_status: 'not_placed'
+    });
+    setEditingStudent(null);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSelectChange = (name: string, value: string) => {
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
   const handleAdd = () => {
+    resetForm();
     setIsDialogOpen(true);
-    toast.success('This is a demo. Student creation would be implemented here.');
   };
 
   const handleEdit = (student: Student) => {
-    toast.success('This is a demo. Student editing would be implemented here.');
+    setEditingStudent(student);
+    setFormData({
+      name: student.name,
+      email: student.email,
+      phone: student.phone || '',
+      course: student.course || '',
+      course_specialization: student.course_specialization || '',
+      school_id: student.school_id || '',
+      student_status: student.student_status || 'ongoing_course',
+      placement_status: student.placement_status || 'not_placed'
+    });
+    setIsDialogOpen(true);
   };
 
-  const handleDelete = (student: Student) => {
-    toast.success('This is a demo. Student deletion would be implemented here.');
+  const handleDelete = async (student: Student) => {
+    if (window.confirm(`Are you sure you want to delete ${student.name}?`)) {
+      try {
+        const { error } = await supabase
+          .from('students')
+          .delete()
+          .eq('id', student.id);
+          
+        if (error) throw error;
+        
+        toast.success(`${student.name} has been deleted`);
+      } catch (error) {
+        console.error('Error deleting student:', error);
+        toast.error('Failed to delete student');
+      }
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validate form data
+    if (!formData.name || !formData.email) {
+      toast.error('Please fill in all required fields');
+      return;
+    }
+    
+    setIsSubmitting(true);
+    
+    try {
+      if (editingStudent) {
+        // Update existing student
+        const { error } = await supabase
+          .from('students')
+          .update({
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            course: formData.course,
+            course_specialization: formData.course_specialization,
+            school_id: formData.school_id || null,
+            student_status: formData.student_status,
+            placement_status: formData.placement_status
+          })
+          .eq('id', editingStudent.id);
+          
+        if (error) throw error;
+        
+        toast.success(`${formData.name} updated successfully`);
+      } else {
+        // Create new student
+        const { error } = await supabase
+          .from('students')
+          .insert([{
+            name: formData.name,
+            email: formData.email,
+            phone: formData.phone,
+            course: formData.course,
+            course_specialization: formData.course_specialization,
+            school_id: formData.school_id || null,
+            student_status: formData.student_status,
+            placement_status: formData.placement_status
+          }]);
+          
+        if (error) throw error;
+        
+        toast.success('Student added successfully');
+      }
+      
+      setIsDialogOpen(false);
+      resetForm();
+    } catch (error) {
+      console.error('Error saving student:', error);
+      toast.error('Failed to save student');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const getStatusDisplay = (status: StudentStatus) => {
@@ -179,84 +300,148 @@ const Students = () => {
         </Card>
       </div>
 
-      {/* Add Student Dialog */}
+      {/* Add/Edit Student Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent className="sm:max-w-[525px]">
           <DialogHeader>
-            <DialogTitle>Add New Student</DialogTitle>
+            <DialogTitle>{editingStudent ? 'Edit Student' : 'Add New Student'}</DialogTitle>
             <DialogDescription>
-              Enter student details to add to the system.
+              {editingStudent ? 'Update student details.' : 'Enter student details to add to the system.'}
             </DialogDescription>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="name">Name</Label>
-                <Input id="name" placeholder="Enter full name" />
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid gap-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="name">Name*</Label>
+                  <Input 
+                    id="name" 
+                    name="name"
+                    value={formData.name}
+                    onChange={handleInputChange}
+                    placeholder="Enter full name" 
+                    required
+                  />
+                </div>
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="email">Email*</Label>
+                  <Input 
+                    id="email" 
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    placeholder="Enter email address" 
+                    type="email"
+                    required 
+                  />
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="phone">Phone</Label>
+                  <Input 
+                    id="phone" 
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    placeholder="Enter phone number" 
+                  />
+                </div>
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="course">Course</Label>
+                  <Input 
+                    id="course" 
+                    name="course"
+                    value={formData.course}
+                    onChange={handleInputChange}
+                    placeholder="Enter course name" 
+                  />
+                </div>
               </div>
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="email">Email</Label>
-                <Input id="email" placeholder="Enter email address" type="email" />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="phone">Phone</Label>
-                <Input id="phone" placeholder="Enter phone number" />
-              </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="course">Course</Label>
-                <Input id="course" placeholder="Enter course name" />
-              </div>
-            </div>
-            <div className="flex flex-col space-y-1.5">
                 <Label htmlFor="course_specialization">Course Specialization</Label>
-                <Input id="course_specialization" placeholder="Enter course specialization" />
-            </div>
-            <div className="grid grid-cols-2 gap-4">
+                <Input 
+                  id="course_specialization" 
+                  name="course_specialization"
+                  value={formData.course_specialization}
+                  onChange={handleInputChange}
+                  placeholder="Enter course specialization" 
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="school_id">School</Label>
+                  <Select
+                    value={formData.school_id || 'none'}
+                    onValueChange={(value) => handleSelectChange('school_id', value === 'none' ? '' : value)}
+                  >
+                    <SelectTrigger id="school_id">
+                      <SelectValue placeholder="Select school" />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                      <SelectItem value="none">None</SelectItem>
+                      {schools.map((school: School) => (
+                        <SelectItem key={school.id} value={school.id}>
+                          {school.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="flex flex-col space-y-1.5">
+                  <Label htmlFor="student_status">Status</Label>
+                  <Select
+                    value={formData.student_status || 'ongoing_course'}
+                    onValueChange={(value) => handleSelectChange('student_status', value)}
+                  >
+                    <SelectTrigger id="student_status">
+                      <SelectValue placeholder="Select status" />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                      <SelectItem value="ongoing_course">Ongoing Course</SelectItem>
+                      <SelectItem value="ongoing_placed">Ongoing and Placed</SelectItem>
+                      <SelectItem value="finished_not_placed">Finished and Not Placed</SelectItem>
+                      <SelectItem value="finished_placed">Finished and Placed</SelectItem>
+                      <SelectItem value="placement_not_needed">Placement Not Needed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
               <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="school">School</Label>
-                <Select>
-                  <SelectTrigger id="school">
-                    <SelectValue placeholder="Select school" />
+                <Label htmlFor="placement_status">Placement Status</Label>
+                <Select
+                  value={formData.placement_status || 'not_placed'}
+                  onValueChange={(value) => handleSelectChange('placement_status', value)}
+                >
+                  <SelectTrigger id="placement_status">
+                    <SelectValue placeholder="Select placement status" />
                   </SelectTrigger>
                   <SelectContent position="popper">
-                    {schools.map((school: School) => (
-                      <SelectItem key={school.id} value={school.id}>
-                        {school.name}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="not_placed">Not Placed</SelectItem>
+                    <SelectItem value="placed">Placed</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex flex-col space-y-1.5">
-                <Label htmlFor="status">Status</Label>
-                <Select defaultValue="ongoing_course">
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="Select status" />
-                  </SelectTrigger>
-                  <SelectContent position="popper">
-                    <SelectItem value="ongoing_course">Ongoing Course</SelectItem>
-                    <SelectItem value="ongoing_placed">Ongoing and Placed</SelectItem>
-                    <SelectItem value="finished_not_placed">Finished and Not Placed</SelectItem>
-                    <SelectItem value="finished_placed">Finished and Placed</SelectItem>
-                    <SelectItem value="placement_not_needed">Placement Not Needed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
             </div>
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
-              Cancel
-            </Button>
-            <Button onClick={() => {
-              toast.success('Student added successfully.');
-              setIsDialogOpen(false);
-            }}>
-              Add Student
-            </Button>
-          </DialogFooter>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsDialogOpen(false);
+                  resetForm();
+                }}
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="submit"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Saving...' : editingStudent ? 'Update Student' : 'Add Student'}
+              </Button>
+            </DialogFooter>
+          </form>
         </DialogContent>
       </Dialog>
     </Layout>

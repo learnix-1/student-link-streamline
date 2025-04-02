@@ -1,85 +1,143 @@
 
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/context/AuthContext';
 
-const LoginForm: React.FC = () => {
-  const [email, setEmail] = useState('admin@haca.com');
-  const [password, setPassword] = useState('password');
+const LoginForm = () => {
+  const { refreshAuthData } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
-  const navigate = useNavigate();
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isRegister, setIsRegister] = useState(false);
+  const [name, setName] = useState('');
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     try {
-      const success = await login(email, password);
-      if (success) {
-        navigate('/dashboard');
+      if (isRegister) {
+        // Register new user
+        const { data, error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              name: name,
+              role: 'placement_officer' // Default role for new users
+            }
+          }
+        });
+
+        if (error) throw error;
+        
+        toast.success('Registration successful! Please check your email for verification.');
+        setIsRegister(false);
+      } else {
+        // Log in existing user
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        if (error) throw error;
+        
+        await refreshAuthData();
+        toast.success('Logged in successfully');
       }
+    } catch (error: any) {
+      toast.error(error.message || 'Authentication failed');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="w-full max-w-md mx-auto">
-      <Card className="glass border-0 shadow-lg overflow-hidden transition-all duration-500">
-        <CardHeader className="text-center pb-6">
-          <CardTitle className="text-3xl font-bold">PlaceTrack</CardTitle>
-          <CardDescription className="mt-2">Sign in to access your placement management system</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <form onSubmit={handleSubmit}>
-            <div className="grid gap-4">
-              <div className="grid gap-2">
-                <label htmlFor="email" className="text-sm font-medium leading-none">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  required
-                  className="focus:ring-2 focus:ring-accent"
-                  autoComplete="email"
-                />
-              </div>
-              <div className="grid gap-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="text-sm font-medium leading-none">
-                    Password
-                  </label>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  className="focus:ring-2 focus:ring-accent"
-                  autoComplete="current-password"
-                />
-              </div>
-              <Button type="submit" className="mt-4 w-full" disabled={isLoading}>
-                {isLoading ? 'Signing in...' : 'Sign In'}
-              </Button>
+    <Card className="w-full max-w-md mx-auto">
+      <CardHeader>
+        <CardTitle>{isRegister ? 'Create an Account' : 'Sign In'}</CardTitle>
+        <CardDescription>
+          {isRegister 
+            ? 'Enter your details to create a new account' 
+            : 'Enter your credentials to sign in to your account'}
+        </CardDescription>
+      </CardHeader>
+      <form onSubmit={handleAuth}>
+        <CardContent className="space-y-4">
+          {isRegister && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Full Name</Label>
+              <Input 
+                id="name" 
+                placeholder="Enter your full name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
             </div>
-          </form>
+          )}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <Input 
+              id="email" 
+              type="email" 
+              placeholder="Enter your email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="password">Password</Label>
+              {!isRegister && (
+                <Button 
+                  variant="link" 
+                  className="px-0 font-normal text-sm"
+                  type="button"
+                  onClick={() => toast.info('Password reset functionality would be implemented here.')}
+                >
+                  Forgot password?
+                </Button>
+              )}
+            </div>
+            <Input 
+              id="password" 
+              type="password"
+              placeholder="Enter your password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              required
+            />
+          </div>
         </CardContent>
-        <CardFooter className="flex flex-col items-center justify-center text-sm text-muted-foreground">
-          <p>Default credentials:</p>
-          <p>Email: admin@haca.com | Password: password</p>
+        <CardFooter className="flex-col space-y-4">
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading 
+              ? (isRegister ? 'Creating Account...' : 'Signing In...') 
+              : (isRegister ? 'Create Account' : 'Sign In')
+            }
+          </Button>
+          <p className="text-center text-sm">
+            {isRegister ? 'Already have an account?' : 'Don\'t have an account?'}
+            {' '}
+            <Button 
+              variant="link" 
+              className="p-0" 
+              type="button"
+              onClick={() => setIsRegister(!isRegister)}
+            >
+              {isRegister ? 'Sign in' : 'Create one'}
+            </Button>
+          </p>
         </CardFooter>
-      </Card>
-    </div>
+      </form>
+    </Card>
   );
 };
 

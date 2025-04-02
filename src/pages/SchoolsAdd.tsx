@@ -10,9 +10,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { toast } from 'sonner';
 import { School, User } from '@/types';
 import { supabase } from '@/integrations/supabase/client';
+import { useNavigate } from 'react-router-dom';
 
 const SchoolsAdd = () => {
   const { userData, role } = useAuth();
+  const navigate = useNavigate();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState<Partial<School>>({
     name: '',
@@ -50,7 +52,7 @@ const SchoolsAdd = () => {
   };
 
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => ({ ...prev, [name]: value === 'none' ? null : value }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -76,11 +78,7 @@ const SchoolsAdd = () => {
       if (error) throw error;
       
       toast.success('School added successfully');
-      setFormData({
-        name: '',
-        location: '',
-        project_lead_id: ''
-      });
+      navigate('/schools');
       
     } catch (error) {
       console.error('Error adding school:', error);
@@ -137,7 +135,7 @@ const SchoolsAdd = () => {
                 <div className="space-y-2">
                   <Label htmlFor="project_lead_id">Project Lead</Label>
                   <Select
-                    value={formData.project_lead_id || ''}
+                    value={formData.project_lead_id || 'none'}
                     onValueChange={(value) => handleSelectChange('project_lead_id', value)}
                   >
                     <SelectTrigger>
