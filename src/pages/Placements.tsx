@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
 import { DataTable } from '@/components/ui/DataTable';
-import { Placement, Student, Company, PlacementOfficer } from '@/types';
+import { Placement, Student, Company, PlacementOfficer, PlacementStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Plus, Edit, Trash } from 'lucide-react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';

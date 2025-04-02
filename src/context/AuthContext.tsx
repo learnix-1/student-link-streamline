@@ -1,7 +1,9 @@
+
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { UserRole } from '@/types';
 import { toast } from 'sonner';
+import { getUserData } from '@/lib/data';
 
 interface AuthContextData {
   isAuthenticated: boolean;
@@ -60,9 +62,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const userRole = currentUser?.user_metadata?.role || 'placement_officer';
       setRole(userRole as UserRole);
       
-      // Fetch demo data (this would be replaced with real data fetching in a production app)
-      const { demoData } = await import('@/lib/data');
-      setUserData(demoData);
+      // Fetch user data using the helper function from data.ts
+      if (currentUser) {
+        const data = getUserData({
+          id: currentUser.id,
+          name: currentUser.user_metadata?.name || 'User',
+          email: currentUser.email || '',
+          role: userRole as UserRole,
+          school_id: currentUser.user_metadata?.school_id
+        });
+        setUserData(data);
+      }
       
       // In a real application, you would fetch user-specific data here
       // For example:

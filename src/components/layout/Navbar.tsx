@@ -2,7 +2,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
+import ThemeToggle from "@/components/layout/ThemeToggle";
 import { LogOut, Menu } from "lucide-react";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { useMobile } from "@/hooks/use-mobile";
