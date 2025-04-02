@@ -58,6 +58,23 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setUser(currentUser);
       setIsAuthenticated(true);
       
+      // Special case for admin@haca.com - set as master_admin role
+      if (currentUser?.email === 'admin@haca.com') {
+        const adminRole = 'master_admin';
+        setRole(adminRole);
+        
+        // Get user data for master admin
+        const data = getUserData({
+          id: currentUser.id,
+          name: 'Admin',
+          email: currentUser.email || '',
+          role: adminRole,
+        });
+        setUserData(data);
+        setLoading(false);
+        return;
+      }
+      
       // Get user role from metadata
       const userRole = currentUser?.user_metadata?.role || 'placement_officer';
       setRole(userRole as UserRole);

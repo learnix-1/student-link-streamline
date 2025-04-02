@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -19,6 +18,47 @@ const LoginForm = () => {
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+
+    // Special case for admin@haca.com
+    if (email === 'admin@haca.com' && password === 'Password') {
+      try {
+        // First try to sign in
+        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email,
+          password
+        });
+
+        // If error indicates user doesn't exist, create admin account
+        if (signInError && signInError.message.includes('Invalid login credentials')) {
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+              data: {
+                name: 'Admin',
+                role: 'master_admin'
+              }
+            }
+          });
+
+          if (signUpError) throw signUpError;
+          
+          toast.success('Admin account created successfully. Please check your email for verification if required.');
+          await refreshAuthData();
+        } else if (signInError) {
+          throw signInError;
+        } else {
+          // Login successful
+          await refreshAuthData();
+          toast.success('Admin logged in successfully');
+        }
+      } catch (error: any) {
+        toast.error(error.message || 'Authentication failed');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
 
     try {
       if (isRegister) {
