@@ -112,22 +112,17 @@ const Users = () => {
       }
 
       if (data && data.user) {
-        try {
-          const createdUser: User = {
-            id: data.user.id,
-            name: newUser.name!,
-            email: newUser.email!,
-            phone: newUser.phone,
-            role: newUser.role as UserRole,
-            school_id: newUser.school_id
-          };
-          
-          setUsers(prev => [...prev, createdUser]);
-          toast.success('User created successfully');
-        } catch (confirmError) {
-          console.error('Error confirming user:', confirmError);
-          toast.info('User created but email confirmation may be required');
-        }
+        const createdUser: User = {
+          id: data.user.id,
+          name: newUser.name!,
+          email: newUser.email!,
+          phone: newUser.phone,
+          role: newUser.role as UserRole,
+          school_id: newUser.school_id
+        };
+        
+        setUsers(prev => [...prev, createdUser]);
+        toast.success('User created successfully');
       }
       
       setIsDialogOpen(false);
