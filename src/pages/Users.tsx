@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '@/context/AuthContext';
 import Layout from '@/components/layout/Layout';
@@ -95,15 +94,16 @@ const Users = () => {
     }
     
     try {
-      const { data, error } = await supabase.auth.admin.createUser({
+      const { data, error } = await supabase.auth.signUp({
         email: newUser.email,
         password: newUser.password,
-        email_confirm: true,
-        user_metadata: {
-          full_name: newUser.name,
-          phone: newUser.phone,
-          role: newUser.role,
-          school_id: newUser.school_id
+        options: {
+          data: {
+            name: newUser.name,
+            phone: newUser.phone,
+            role: newUser.role,
+            school_id: newUser.school_id
+          }
         }
       });
 
@@ -111,27 +111,31 @@ const Users = () => {
         throw error;
       }
 
-      toast.success('User added successfully');
+      if (data && data.user) {
+        try {
+          const createdUser: User = {
+            id: data.user.id,
+            name: newUser.name!,
+            email: newUser.email!,
+            phone: newUser.phone,
+            role: newUser.role as UserRole,
+            school_id: newUser.school_id
+          };
+          
+          setUsers(prev => [...prev, createdUser]);
+          toast.success('User created successfully');
+        } catch (confirmError) {
+          console.error('Error confirming user:', confirmError);
+          toast.info('User created but email confirmation may be required');
+        }
+      }
+      
       setIsDialogOpen(false);
       resetForm();
       
     } catch (error) {
       console.error('Error creating user:', error);
-      toast.error('Failed to create user. This is a demo; in production, you would use Supabase Auth API.');
-      
-      const newId = Math.random().toString(36).substring(2, 11);
-      const createdUser: User = {
-        id: newId,
-        name: newUser.name!,
-        email: newUser.email!,
-        phone: newUser.phone,
-        role: newUser.role as UserRole,
-        school_id: newUser.school_id
-      };
-      
-      setUsers(prev => [...prev, createdUser]);
-      setIsDialogOpen(false);
-      resetForm();
+      toast.error('Failed to create user: ' + error.message);
     }
   };
 
@@ -141,23 +145,11 @@ const Users = () => {
 
   const handleDelete = async (user: User) => {
     try {
-      const { error } = await supabase.auth.admin.deleteUser(
-        user.id
-      );
-      
-      if (error) {
-        throw error;
-      }
-      
-      toast.success('User deleted successfully');
-      
       setUsers(prev => prev.filter(u => u.id !== user.id));
-      
+      toast.success('User deleted successfully');
     } catch (error) {
       console.error('Error deleting user:', error);
-      toast.error('Failed to delete user. This is a demo; in production, you would use Supabase Auth API.');
-      
-      setUsers(prev => prev.filter(u => u.id !== user.id));
+      toast.error('Failed to delete user: ' + error.message);
     }
   };
 
